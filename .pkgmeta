@@ -1,0 +1,20 @@
+package-as: PartySharkBingo
+
+manual-changelog:
+    filename: CHANGELOG.md
+    markup-type: markdown
+
+externals:
+    Libs/LibStub:
+        url: https://repos.wowace.com/wow/ace3/trunk/LibStub
+        tag: latest
+    Libs/CallbackHandler-1.0:
+        url: https://repos.wowace.com/wow/ace3/trunk/CallbackHandler-1.0
+        tag: latest
+
+enable-nolib-creation: yes
+
+ignore:
+    - .pkgmeta
+    - .git
+    - "*.png"
