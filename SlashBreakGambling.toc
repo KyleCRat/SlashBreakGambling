@@ -35,6 +35,8 @@ UI/RequestRollsButton.lua
 UI/GameButton.lua
 UI/TokenPriceButton.lua
 UI/TogglePlayerListButton.lua
+UI/JoinLeaveButton.lua
 
 Modules/LowPaysHighDiff.lua
 Modules/LowPaysHighTotal.lua
+Modules/DeathRoll.lua

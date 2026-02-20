@@ -2,6 +2,16 @@ local addon = LibStub("AceAddon-3.0"):GetAddon("SlashBreakGambling")
 
 addon.GameModules = {}
 
+local function GetFullPlayerName()
+    local name = GetUnitName("player", true)
+
+    if not name:find("-") then
+        name = name .. "-" .. (GetRealmName():gsub("%s+", ""))
+    end
+
+    return name
+end
+
 local SESSION_STATES = {
     IDLE      = "idle",
     OPEN      = "open",
@@ -46,7 +56,7 @@ local function GetSelectedModuleLabel()
 end
 
 local function GetSelectedModuleConfig()
-    local key = addon.db:Get("session", "selectedModule")
+    local key = (addon.session and addon.session.moduleName) or addon.db:Get("session", "selectedModule")
 
     for _, entry in ipairs(addon.GameModules) do
         if entry.key == key then
@@ -118,7 +128,7 @@ function addon:IsSessionLeader()
         return false
     end
 
-    return self.session.leader == GetUnitName("player", true)
+    return self.session.leader == GetFullPlayerName()
 end
 
 function addon:StartSession()
@@ -128,7 +138,7 @@ function addon:StartSession()
 
     self:ResetSession()
     self.session.state = SESSION_STATES.OPEN
-    self.session.leader = GetUnitName("player", true)
+    self.session.leader = GetFullPlayerName()
 
     RegisterChatEvents()
 
@@ -299,7 +309,7 @@ function addon:CanRollForMe()
         return false
     end
 
-    local name = GetUnitName("player", true)
+    local name = GetFullPlayerName()
     local _, player = FindPlayer(self.session.players, name)
 
     if not player then
@@ -325,10 +335,42 @@ local function AddPlayer(name)
         return
     end
 
-    local _, classFile = UnitClass(name)
+    local config = GetSelectedModuleConfig()
+
+    if config.maxPlayers and #players >= config.maxPlayers then
+        return
+    end
+
+    local classFile
+    local unitName = GetFullPlayerName()
+
+    if unitName == name then
+        _, classFile = UnitClass("player")
+    else
+        local realm = GetRealmName():gsub("%s+", "")
+
+        for i = 1, GetNumGroupMembers() do
+            local unit = (IsInRaid() and "raid" or "party") .. i
+            local unitName = GetUnitName(unit, true)
+
+            if unitName and not unitName:find("-") then
+                unitName = unitName .. "-" .. realm
+            end
+
+            if unitName == name then
+                _, classFile = UnitClass(unit)
+                break
+            end
+        end
+    end
 
     table.insert(players, { name = name, roll = nil, classFile = classFile })
     addon:SendMessage("SBG_PLAYER_JOINED", name)
+
+    if addon:IsSessionLeader() and config.maxPlayers and #players >= config.maxPlayers then
+        addon:LastCall()
+        addon:CloseEntries()
+    end
 end
 
 local function RemovePlayer(name)
@@ -356,7 +398,7 @@ function addon:OnChatMessage(event, msg, sender)
         return
     end
 
-    local name = Ambiguate(sender, "none")
+    local name = sender
 
     if msg == "1" then
         AddPlayer(name)
@@ -397,8 +439,40 @@ function addon:OnSystemMessage(event, msg)
         return
     end
 
+    local config = GetSelectedModuleConfig()
+
+    if config.OnRoll and not self:IsSessionLeader() then
+        return
+    end
+
     player.roll = roll
     self:SendMessage("SBG_PLAYER_ROLLED", name, roll)
+
+    if not self:IsSessionLeader() then
+        return
+    end
+
+    if config.OnRoll then
+        local result = config.OnRoll(self.session, player)
+
+        if result.done then
+            self:EndSession()
+        elseif result.nextRollAmount then
+            self.session.rollAmount = result.nextRollAmount
+
+            for _, p in ipairs(self.session.players) do
+                p.roll = nil
+            end
+
+            player.roll = roll
+
+            BroadcastMessage("ROLLADVANCED", result.nextRollAmount, player.name, roll)
+            Announce(result.nextPlayer .. " — /roll " .. result.nextRollAmount)
+            self:SendMessage("SBG_SESSION_ROLL_ADVANCED", result.nextRollAmount)
+        end
+
+        return
+    end
 
     if not self:HasUnrolledPlayers() then
         self:EndSession()
@@ -437,9 +511,9 @@ function addon:OnAddonMessage(event, prefix, message, channel, sender)
         return
     end
 
-    local senderName = Ambiguate(sender, "none")
+    local senderName = sender
 
-    if senderName == GetUnitName("player", true) then
+    if senderName == GetFullPlayerName() then
         return
     end
 
@@ -460,6 +534,13 @@ function addon:OnAddonMessage(event, prefix, message, channel, sender)
 
     if command == "CLOSE" then
         self:OnRemoteClose(senderName, tonumber(payload))
+
+        return
+    end
+
+    if command == "ROLLADVANCED" then
+        local nextRollAmount, rollerName, rollerRoll = strsplit(":", payload, 3)
+        self:OnRemoteRollAdvanced(senderName, tonumber(nextRollAmount), rollerName, tonumber(rollerRoll))
 
         return
     end
@@ -521,6 +602,30 @@ function addon:OnRemoteClose(leader, rollAmount)
     self:RegisterEvent("CHAT_MSG_SYSTEM", "OnSystemMessage")
 
     self:SendMessage("SBG_SESSION_STATE_CHANGED", SESSION_STATES.CLOSED)
+end
+
+function addon:OnRemoteRollAdvanced(leader, nextRollAmount, rollerName, rollerRoll)
+    if self:GetSessionState() ~= SESSION_STATES.CLOSED then
+        return
+    end
+
+    if not self.session or self.session.leader ~= leader then
+        return
+    end
+
+    self.session.rollAmount = nextRollAmount
+
+    for _, player in ipairs(self.session.players) do
+        player.roll = nil
+    end
+
+    local _, roller = FindPlayer(self.session.players, rollerName)
+
+    if roller then
+        roller.roll = rollerRoll
+    end
+
+    self:SendMessage("SBG_SESSION_ROLL_ADVANCED", nextRollAmount)
 end
 
 function addon:OnRemoteEnd(leader)

@@ -23,6 +23,10 @@ local function OnSessionStateChanged(event, state)
         UI.UpdateTogglePlayerListButton(frame.togglePlayerListButton, state)
     end
 
+    if frame.joinLeaveButton then
+        UI.UpdateJoinLeaveButton(frame.joinLeaveButton, state)
+    end
+
     if frame.requestRollsButton then
         UI.UpdateRequestRollsButton(frame.requestRollsButton, state)
     end
@@ -94,6 +98,26 @@ local function OnPlayerChanged(event, name)
     if frame.gameButton then
         UI.UpdateGameButton(frame.gameButton, addon:GetSessionState())
     end
+
+    if frame.joinLeaveButton then
+        UI.UpdateJoinLeaveButton(frame.joinLeaveButton, addon:GetSessionState())
+    end
+end
+
+local function OnRollAdvanced()
+    local frame = UI.frame
+
+    if not frame then
+        return
+    end
+
+    if frame.playerList then
+        UI.RefreshPlayerList(frame.playerList)
+    end
+
+    if frame.rollForMeButton then
+        UI.UpdateRollForMeButton(frame.rollForMeButton, addon:GetSessionState())
+    end
 end
 
 local function OnPlayerRolled(event, name, roll)
@@ -148,6 +172,9 @@ function UI:OnEnable()
     frame.gameButton = self:CreateGameButton(frame,
         frame.goldSlider, SECTION_SPACING)
 
+    frame.joinLeaveButton = self:CreateJoinLeaveButton(frame,
+        frame.gameButton, BUTTON_SPACING)
+
     frame.tokenPriceButton = self:CreateTokenPriceButton(frame,
         frame.gameButton, BUTTON_SPACING)
 
@@ -170,4 +197,5 @@ function UI:OnEnable()
     self:RegisterMessage("SBG_PLAYER_JOINED", OnPlayerChanged)
     self:RegisterMessage("SBG_PLAYER_LEFT", OnPlayerChanged)
     self:RegisterMessage("SBG_PLAYER_ROLLED", OnPlayerRolled)
+    self:RegisterMessage("SBG_SESSION_ROLL_ADVANCED", OnRollAdvanced)
 end
