@@ -270,10 +270,19 @@ function addon:RequestRolls()
         return
     end
 
+    local currentPlayerName = self.session.moduleState.currentPlayerName
+
+    if currentPlayerName then
+        Announce("Waiting on: " .. currentPlayerName .. " — /roll " .. self.session.rollAmount)
+
+        return
+    end
+
     local unrolled = {}
+    local eliminated = self.session.moduleState.eliminated
 
     for _, player in ipairs(self.session.players) do
-        if not player.roll then
+        if not player.roll and not (eliminated and eliminated[player.name]) then
             table.insert(unrolled, player.name)
         end
     end
@@ -467,10 +476,6 @@ function addon:OnSystemMessage(event, msg)
         end
     end
 
-    if config.OnRoll and config.turnBased and not self:IsSessionLeader() then
-        return
-    end
-
     player.roll = roll
     self:SendMessage("SBG_PLAYER_ROLLED", name, roll)
 
@@ -502,7 +507,7 @@ function addon:OnSystemMessage(event, msg)
                 Announce(result.eliminationMessage)
             end
 
-            BroadcastMessage("ROLLADVANCED", result.nextRollAmount, player.name, roll, result.nextPlayer)
+            BroadcastMessage("ROLLADVANCED", result.nextRollAmount, player.name, roll, result.nextPlayer or "")
 
             if result.nextPlayer then
                 Announce(result.nextPlayer .. " — /roll " .. result.nextRollAmount)
@@ -582,6 +587,11 @@ function addon:OnAddonMessage(event, prefix, message, channel, sender)
 
     if command == "ROLLADVANCED" then
         local nextRollAmount, rollerName, rollerRoll, nextPlayerName = strsplit(":", payload, 4)
+
+        if nextPlayerName == "" then
+            nextPlayerName = nil
+        end
+
         self:OnRemoteRollAdvanced(senderName, tonumber(nextRollAmount), rollerName, tonumber(rollerRoll), nextPlayerName)
 
         return

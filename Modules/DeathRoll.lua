@@ -56,13 +56,11 @@ local function GetResult(players, goldAmount)
 end
 
 local function AnnounceResults(players, goldAmount, lastResult)
-    local result = GetResult(players, goldAmount)
-
-    if not result then
+    if not lastResult then
         return nil
     end
 
-    return result.loser .. " rolled 1! " .. result.loser .. " owes " .. result.winner .. " " .. BreakUpLargeNumbers(result.amount) .. "g!"
+    return lastResult.loser .. " rolled 1! " .. lastResult.loser .. " owes " .. lastResult.winner .. " " .. BreakUpLargeNumbers(lastResult.amount) .. "g!"
 end
 
 addon:RegisterGameModule("DeathRoll", "Death Roll (1v1)", {

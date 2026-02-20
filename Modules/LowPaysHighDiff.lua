@@ -38,17 +38,15 @@ local function GetResult(players, goldAmount)
 end
 
 local function AnnounceResults(players, goldAmount, lastResult)
-    local result = GetResult(players, goldAmount)
-
-    if not result then
+    if not lastResult then
         return nil
     end
 
-    if result.tie then
+    if lastResult.tie then
         return "It's a tie! No one pays."
     end
 
-    return result.loser .. " owes " .. result.winner .. " " .. BreakUpLargeNumbers(result.amount) .. "g!"
+    return lastResult.loser .. " owes " .. lastResult.winner .. " " .. BreakUpLargeNumbers(lastResult.amount) .. "g!"
 end
 
 addon:RegisterGameModule("LowPaysHighDiff", "Low Pays High (Diff)", {
