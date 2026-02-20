@@ -25,6 +25,9 @@ function addon:OnInitialize()
     self:RegisterSlashCommands()
     self.db = LibStub("AddonDB-1.0"):New("SlashBreakGamblingDB", self.defaults)
 
+    C_ChatInfo.RegisterAddonMessagePrefix("SBG")
+    self:RegisterEvent("CHAT_MSG_ADDON", "OnAddonMessage")
+
     self:Hook(self, "EnableModule", OnEnableModule)
     self:Hook(self, "DisableModule", OnDisableModule)
 

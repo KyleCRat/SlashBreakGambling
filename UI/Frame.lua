@@ -1,8 +1,6 @@
 local addon = LibStub("AceAddon-3.0"):GetAddon("SlashBreakGambling")
 local UI = addon:GetModule("UI")
 
-local FONT_PATH = "Interface\\AddOns\\PartySharkBingo\\media\\fonts\\PTSansNarrow-Bold.ttf"
-
 local function CreateMainFrame()
     local db = addon.db
 
@@ -13,7 +11,7 @@ local function CreateMainFrame()
 
     local frame = CreateFrame("Frame", "SlashBreakGamblingFrame", UIParent, "BackdropTemplate")
     frame:SetSize(width, height)
-    frame:SetPoint(pos.point, UIParent, pos.relative_point, pos.x, pos.y)
+    frame:SetPoint(pos.point, UIParent, pos.relativePoint, pos.x, pos.y)
     frame:SetClampedToScreen(true)
     frame:SetFrameStrata("HIGH")
 

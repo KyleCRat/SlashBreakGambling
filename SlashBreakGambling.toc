@@ -19,10 +19,15 @@ Initialize.lua
 SlashCommands.lua
 Defaults.lua
 Functions.lua
+Session.lua
 
 UI.lua
 UI/Partials/_Button.lua
 UI/Frame.lua
 UI/PlayerList.lua
+UI/GoldSlider.lua
+UI/ModuleSelector.lua
+UI/RequestRollsButton.lua
+UI/GameButton.lua
 
 Modules/LowPaysHigh.lua

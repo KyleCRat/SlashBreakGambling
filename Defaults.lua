@@ -7,10 +7,14 @@ addon.defaults = {
         height = 300,
         backgroundColor = { r = 0, g = 0, b = 0, a = 0.8 },
         position = {
-            offsetX = 0,
-            offsetY = -70,
+            x = 0,
+            y = -70,
             point = "CENTER",
             relativePoint = "CENTER",
         },
+    },
+    session = {
+        selectedModule = "LowPaysHigh",
+        goldAmount = 1000,
     },
 }

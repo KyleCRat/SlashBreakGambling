@@ -1,18 +1,36 @@
 local addon = LibStub("AceAddon-3.0"):GetAddon("SlashBreakGambling")
-local LPH = addon:NewModule("LowPaysHigh")
 
-function LPH:OnEnable()
-    self:RegisterEvent("CHAT_MSG_SYSTEM", "OnChatMessage")
+local function AnnounceResults(players, goldAmount)
+    if #players < 2 then
+        return nil
+    end
 
-    addon:Print("LowPaysHigh: Enabled")
+    local lowest = players[1]
+    local highest = players[1]
+
+    for _, player in ipairs(players) do
+        if player.roll < lowest.roll then
+            lowest = player
+        end
+
+        if player.roll > highest.roll then
+            highest = player
+        end
+    end
+
+    if lowest.roll == highest.roll then
+        return "It's a tie! No one pays."
+    end
+
+    local diff = highest.roll - lowest.roll
+
+    return lowest.name .. " owes " .. highest.name .. " " .. BreakUpLargeNumbers(diff) .. "g!"
 end
 
-function LPH:OnDisable()
-    self:UnregisterEvent("CHAT_MSG_SYSTEM")
-
-    addon:Print("LowPaysHigh: Disabled")
-end
-
-function LPH:OnChatMessage(event, msg)
-    addon:Print("Got Message: ", msg)
-end
+addon:RegisterGameModule("LowPaysHigh", "Low Pays High", {
+    maxPlayers = nil,
+    GetRollCommand = function(goldAmount)
+        return goldAmount
+    end,
+    AnnounceResults = AnnounceResults,
+})
