@@ -12,6 +12,10 @@ local function GetFullPlayerName()
     return name
 end
 
+function addon:GetFullPlayerName()
+    return GetFullPlayerName()
+end
+
 local SESSION_STATES = {
     IDLE      = "idle",
     OPEN      = "open",
@@ -110,6 +114,7 @@ function addon:ResetSession()
         players = {},
         goldAmount = self.db:Get("session", "goldAmount"),
         moduleName = self.db:Get("session", "selectedModule"),
+        moduleState = {},
     }
 
     self:SendMessage("SBG_SESSION_STATE_CHANGED", SESSION_STATES.IDLE)
@@ -195,7 +200,12 @@ function addon:CloseEntries()
 
     BroadcastMessage("CLOSE", rollAmount)
 
-    Announce("Entries closed! Type /roll " .. rollAmount)
+    if config.OnRoll then
+        self.session.moduleState.currentPlayerName = self.session.players[1].name
+        Announce("Entries closed! " .. self.session.players[1].name .. " — /roll " .. rollAmount)
+    else
+        Announce("Entries closed! Type /roll " .. rollAmount)
+    end
 
     self:SendMessage("SBG_SESSION_STATE_CHANGED", SESSION_STATES.CLOSED)
 end
@@ -215,27 +225,24 @@ function addon:EndSession()
 
     UnregisterSessionEvents()
 
-    if not self:HasUnrolledPlayers() and #self.session.players >= 2 then
-        local config = GetSelectedModuleConfig()
+    local config = GetSelectedModuleConfig()
 
-        if config.GetResult then
-            self.session.lastResult = config.GetResult(self.session.players, self.session.goldAmount)
-        end
+    if not self.session.lastResult and config.GetResult then
+        self.session.lastResult = config.GetResult(self.session.players, self.session.goldAmount)
+    end
 
-        if isLeader and config.AnnounceResults then
-            local announcement = config.AnnounceResults(self.session.players, self.session.goldAmount)
+    if isLeader and self.session.lastResult then
+        if config.AnnounceResults then
+            local announcement = config.AnnounceResults(self.session.players, self.session.goldAmount, self.session.lastResult)
 
             if announcement then
                 Announce(announcement)
             end
         end
-    end
 
-    if isLeader then
         Announce("Game ended!")
-    end
-
-    if self:HasUnrolledPlayers() then
+    elseif isLeader then
+        Announce("Game ended!")
         self.session.players = {}
         self.session.lastResult = nil
     end
@@ -316,7 +323,17 @@ function addon:CanRollForMe()
         return false
     end
 
-    return not player.roll
+    if player.roll then
+        return false
+    end
+
+    local currentPlayerName = self.session.moduleState.currentPlayerName
+
+    if currentPlayerName and currentPlayerName ~= name then
+        return false
+    end
+
+    return true
 end
 
 function addon:RollForMe()
@@ -441,6 +458,15 @@ function addon:OnSystemMessage(event, msg)
 
     local config = GetSelectedModuleConfig()
 
+    if config.OnRoll then
+        local currentName = self.session.moduleState.currentPlayerName
+        local shortCurrent = currentName and currentName:match("^([^%-]+)")
+
+        if name ~= shortCurrent then
+            return
+        end
+    end
+
     if config.OnRoll and not self:IsSessionLeader() then
         return
     end
@@ -459,6 +485,7 @@ function addon:OnSystemMessage(event, msg)
             self:EndSession()
         elseif result.nextRollAmount then
             self.session.rollAmount = result.nextRollAmount
+            self.session.moduleState.currentPlayerName = result.nextPlayer
 
             for _, p in ipairs(self.session.players) do
                 p.roll = nil
@@ -466,7 +493,11 @@ function addon:OnSystemMessage(event, msg)
 
             player.roll = roll
 
-            BroadcastMessage("ROLLADVANCED", result.nextRollAmount, player.name, roll)
+            if result.eliminationMessage then
+                Announce(result.eliminationMessage)
+            end
+
+            BroadcastMessage("ROLLADVANCED", result.nextRollAmount, player.name, roll, result.nextPlayer)
             Announce(result.nextPlayer .. " — /roll " .. result.nextRollAmount)
             self:SendMessage("SBG_SESSION_ROLL_ADVANCED", result.nextRollAmount)
         end
@@ -539,8 +570,8 @@ function addon:OnAddonMessage(event, prefix, message, channel, sender)
     end
 
     if command == "ROLLADVANCED" then
-        local nextRollAmount, rollerName, rollerRoll = strsplit(":", payload, 3)
-        self:OnRemoteRollAdvanced(senderName, tonumber(nextRollAmount), rollerName, tonumber(rollerRoll))
+        local nextRollAmount, rollerName, rollerRoll, nextPlayerName = strsplit(":", payload, 4)
+        self:OnRemoteRollAdvanced(senderName, tonumber(nextRollAmount), rollerName, tonumber(rollerRoll), nextPlayerName)
 
         return
     end
@@ -561,6 +592,7 @@ function addon:OnRemoteStart(leader, goldAmount, moduleKey)
         players = {},
         goldAmount = goldAmount,
         moduleName = moduleKey,
+        moduleState = {},
     }
 
     RegisterChatEvents()
@@ -599,12 +631,18 @@ function addon:OnRemoteClose(leader, rollAmount)
     self.session.state = SESSION_STATES.CLOSED
     self.session.rollAmount = rollAmount
 
+    local config = GetSelectedModuleConfig()
+
+    if config.OnRoll and #self.session.players > 0 then
+        self.session.moduleState.currentPlayerName = self.session.players[1].name
+    end
+
     self:RegisterEvent("CHAT_MSG_SYSTEM", "OnSystemMessage")
 
     self:SendMessage("SBG_SESSION_STATE_CHANGED", SESSION_STATES.CLOSED)
 end
 
-function addon:OnRemoteRollAdvanced(leader, nextRollAmount, rollerName, rollerRoll)
+function addon:OnRemoteRollAdvanced(leader, nextRollAmount, rollerName, rollerRoll, nextPlayerName)
     if self:GetSessionState() ~= SESSION_STATES.CLOSED then
         return
     end
@@ -614,6 +652,7 @@ function addon:OnRemoteRollAdvanced(leader, nextRollAmount, rollerName, rollerRo
     end
 
     self.session.rollAmount = nextRollAmount
+    self.session.moduleState.currentPlayerName = nextPlayerName
 
     for _, player in ipairs(self.session.players) do
         player.roll = nil

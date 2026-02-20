@@ -8,7 +8,7 @@ local function IsLocalPlayerInSession()
         return false
     end
 
-    local name = GetUnitName("player", true)
+    local name = addon:GetFullPlayerName()
 
     for _, player in ipairs(addon.session.players) do
         if player.name == name then

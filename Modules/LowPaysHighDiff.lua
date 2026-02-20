@@ -37,7 +37,7 @@ local function GetResult(players, goldAmount)
     }
 end
 
-local function AnnounceResults(players, goldAmount)
+local function AnnounceResults(players, goldAmount, lastResult)
     local result = GetResult(players, goldAmount)
 
     if not result then

@@ -40,3 +40,4 @@ UI/JoinLeaveButton.lua
 Modules/LowPaysHighDiff.lua
 Modules/LowPaysHighTotal.lua
 Modules/DeathRoll.lua
+Modules/DeathRollRR.lua
