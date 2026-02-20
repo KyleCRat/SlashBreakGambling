@@ -52,6 +52,7 @@ local function AnnounceResults(players, goldAmount, lastResult)
 end
 
 addon:RegisterGameModule("LowPaysHighDiff", "Low Pays High (Diff)", {
+    description = "Everyone rolls. The lowest roller pays the highest roller the difference between their rolls.",
     maxPlayers = nil,
     GetRollCommand = function(goldAmount)
         return goldAmount

@@ -29,6 +29,7 @@ local function OnRoll(session, player)
     return {
         nextRollAmount = player.roll,
         nextPlayer     = nextPlayer and nextPlayer.name or player.name,
+        clearRolls     = true,
     }
 end
 
@@ -65,7 +66,9 @@ local function AnnounceResults(players, goldAmount, lastResult)
 end
 
 addon:RegisterGameModule("DeathRoll", "Death Roll (1v1)", {
+    description = "Two players take turns rolling. Each roll sets the new max. First to roll 1 loses and pays the other player.",
     maxPlayers = 2,
+    turnBased  = true,
     GetRollCommand = function(goldAmount)
         return goldAmount
     end,

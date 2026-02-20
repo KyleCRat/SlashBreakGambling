@@ -69,20 +69,35 @@ local function ShowDropdown(button)
             row.text:SetTextColor(1, 1, 1, 1)
             row:SetBackdropColor(0.3, 0.25, 0, 1)
             row:SetBackdropBorderColor(1, 0.82, 0, 1)
-
-            row:SetScript("OnLeave", function(self)
-                self:SetBackdropColor(0.3, 0.25, 0, 1)
-                self:SetBackdropBorderColor(1, 0.82, 0, 1)
-            end)
         end
 
         local key = entry.key
+        local description = entry.config and entry.config.description
 
         row:SetScript("OnClick", function()
             addon.db:Set("session", "selectedModule", key)
             addon:SendMessage("SBG_MODULE_CHANGED", key)
             HideDropdown(button)
         end)
+
+        if description then
+            row:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_NONE")
+                GameTooltip:SetPoint("LEFT", self, "RIGHT", 16, 0)
+                GameTooltip:SetText(entry.label, 1, 0.82, 0, 1)
+                GameTooltip:AddLine(description, 1, 1, 1, true)
+                GameTooltip:Show()
+            end)
+
+            row:SetScript("OnLeave", function(self)
+                GameTooltip:Hide()
+
+                if self.isSelected then
+                    self:SetBackdropColor(0.3, 0.25, 0, 1)
+                    self:SetBackdropBorderColor(1, 0.82, 0, 1)
+                end
+            end)
+        end
 
         dropdown.rows[i] = row
     end

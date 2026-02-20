@@ -50,6 +50,7 @@ local function AnnounceResults(players, goldAmount, lastResult)
 end
 
 addon:RegisterGameModule("LowPaysHighTotal", "Low Pays High (Total)", {
+    description = "Everyone rolls. The lowest roller pays the highest roller the total gold amount.",
     maxPlayers = nil,
     GetRollCommand = function(goldAmount)
         return goldAmount

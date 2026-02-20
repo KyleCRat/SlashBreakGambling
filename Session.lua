@@ -200,7 +200,7 @@ function addon:CloseEntries()
 
     BroadcastMessage("CLOSE", rollAmount)
 
-    if config.OnRoll then
+    if config.OnRoll and config.turnBased then
         self.session.moduleState.currentPlayerName = self.session.players[1].name
         Announce("Entries closed! " .. self.session.players[1].name .. " — /roll " .. rollAmount)
     else
@@ -458,7 +458,7 @@ function addon:OnSystemMessage(event, msg)
 
     local config = GetSelectedModuleConfig()
 
-    if config.OnRoll then
+    if config.OnRoll and config.turnBased then
         local currentName = self.session.moduleState.currentPlayerName
         local shortCurrent = currentName and currentName:match("^([^%-]+)")
 
@@ -467,7 +467,7 @@ function addon:OnSystemMessage(event, msg)
         end
     end
 
-    if config.OnRoll and not self:IsSessionLeader() then
+    if config.OnRoll and config.turnBased and not self:IsSessionLeader() then
         return
     end
 
@@ -485,20 +485,31 @@ function addon:OnSystemMessage(event, msg)
             self:EndSession()
         elseif result.nextRollAmount then
             self.session.rollAmount = result.nextRollAmount
-            self.session.moduleState.currentPlayerName = result.nextPlayer
 
-            for _, p in ipairs(self.session.players) do
-                p.roll = nil
+            if config.turnBased then
+                self.session.moduleState.currentPlayerName = result.nextPlayer
             end
 
-            player.roll = roll
+            if result.clearRolls then
+                for _, p in ipairs(self.session.players) do
+                    p.roll = nil
+                end
+
+                player.roll = roll
+            end
 
             if result.eliminationMessage then
                 Announce(result.eliminationMessage)
             end
 
             BroadcastMessage("ROLLADVANCED", result.nextRollAmount, player.name, roll, result.nextPlayer)
-            Announce(result.nextPlayer .. " — /roll " .. result.nextRollAmount)
+
+            if result.nextPlayer then
+                Announce(result.nextPlayer .. " — /roll " .. result.nextRollAmount)
+            else
+                Announce("Type /roll " .. result.nextRollAmount)
+            end
+
             self:SendMessage("SBG_SESSION_ROLL_ADVANCED", result.nextRollAmount)
         end
 
@@ -633,7 +644,7 @@ function addon:OnRemoteClose(leader, rollAmount)
 
     local config = GetSelectedModuleConfig()
 
-    if config.OnRoll and #self.session.players > 0 then
+    if config.OnRoll and config.turnBased and #self.session.players > 0 then
         self.session.moduleState.currentPlayerName = self.session.players[1].name
     end
 
@@ -651,8 +662,13 @@ function addon:OnRemoteRollAdvanced(leader, nextRollAmount, rollerName, rollerRo
         return
     end
 
+    local config = GetSelectedModuleConfig()
+
     self.session.rollAmount = nextRollAmount
-    self.session.moduleState.currentPlayerName = nextPlayerName
+
+    if config.turnBased then
+        self.session.moduleState.currentPlayerName = nextPlayerName
+    end
 
     for _, player in ipairs(self.session.players) do
         player.roll = nil

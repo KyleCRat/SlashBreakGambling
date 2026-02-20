@@ -41,3 +41,4 @@ Modules/LowPaysHighDiff.lua
 Modules/LowPaysHighTotal.lua
 Modules/DeathRoll.lua
 Modules/DeathRollRR.lua
+Modules/LastManStanding.lua

@@ -72,6 +72,7 @@ local function OnRoll(session, player)
             eliminationMessage = player.name .. " rolled 1 and is eliminated!",
             nextRollAmount     = session.rollAmount,
             nextPlayer         = nextPlayer.name,
+            clearRolls         = true,
         }
     end
 
@@ -81,6 +82,7 @@ local function OnRoll(session, player)
     return {
         nextRollAmount = player.roll,
         nextPlayer     = nextPlayer.name,
+        clearRolls     = true,
     }
 end
 
@@ -122,7 +124,9 @@ local function AnnounceResults(players, goldAmount, lastResult)
 end
 
 addon:RegisterGameModule("DeathRollRR", "Death Roll (Round Robin)", {
+    description = "Players take turns rolling. Each roll sets the new max. Rolling 1 eliminates you. Last player standing wins — all losers pay.",
     maxPlayers = nil,
+    turnBased  = true,
     GetRollCommand = function(goldAmount)
         return goldAmount
     end,
