@@ -1,4 +1,5 @@
-local addon = LibStub("AceAddon-3.0"):NewAddon("SlashBreakGambling", "AceEvent-3.0", "AceHook-3.0")
+local addon = LibStub("AceAddon-3.0"):NewAddon("SlashBreakGambling",
+    "AceConsole-3.0", "AceEvent-3.0", "AceHook-3.0")
 addon:SetDefaultModuleState(false)
 
 addon.COLOR = "ff3366aa"
@@ -21,6 +22,7 @@ end
 ---
 
 function addon:OnInitialize()
+    self:RegisterSlashCommands()
     self.db = LibStub("AddonDB-1.0"):New("SlashBreakGamblingDB", self.defaults)
 
     self:Hook(self, "EnableModule", OnEnableModule)
