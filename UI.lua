@@ -6,5 +6,8 @@ UI.Partials = {}
 
 function UI:OnEnable()
     local frame = self:CreateMainFrame()
-    self:CreatePlayerList()
+    frame.playerList = self:CreatePlayerList(frame)
+
+    frame:SetShown(addon.db:Get("frame", "shown"))
+    self.frame = frame
 end

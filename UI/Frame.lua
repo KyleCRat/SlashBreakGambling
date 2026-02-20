@@ -1,6 +1,8 @@
 local addon = LibStub("AceAddon-3.0"):GetAddon("SlashBreakGambling")
 local UI = addon:GetModule("UI")
 
+local FONT_PATH = "Interface\\AddOns\\PartySharkBingo\\media\\fonts\\PTSansNarrow-Bold.ttf"
+
 local function CreateMainFrame()
     local db = addon.db
 
@@ -16,12 +18,16 @@ local function CreateMainFrame()
     frame:SetFrameStrata("HIGH")
 
     frame:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8x8",
-        edgeFile = "Interface\\Buttons\\WHITE8x8",
-        edgeSize = 1,
+        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileEdge = true,
+        tileSize = 16,
+        edgeSize = 16,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
     })
     frame:SetBackdropColor(bgR, bgG, bgB, bgA)
-    frame:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+    frame:SetBackdropBorderColor(1, 1, 1, 1)
 
     frame:RegisterForDrag("LeftButton")
     frame:SetMovable(true)
