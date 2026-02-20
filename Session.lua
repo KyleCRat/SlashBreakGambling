@@ -27,7 +27,7 @@ local function Announce(message)
     local channel = GetChatChannel()
 
     if channel then
-        SendChatMessage(message, channel)
+        SendChatMessage(addon.ABBR .. " " .. message, channel)
     else
         addon:Print(message)
     end
@@ -118,7 +118,7 @@ function addon:IsSessionLeader()
         return false
     end
 
-    return self.session.leader == UnitName("player")
+    return self.session.leader == GetUnitName("player", true)
 end
 
 function addon:StartSession()
@@ -128,7 +128,7 @@ function addon:StartSession()
 
     self:ResetSession()
     self.session.state = SESSION_STATES.OPEN
-    self.session.leader = UnitName("player")
+    self.session.leader = GetUnitName("player", true)
 
     RegisterChatEvents()
 
@@ -136,7 +136,7 @@ function addon:StartSession()
 
     local gold = FormatGold(self.session.goldAmount)
     local mode = GetSelectedModuleLabel()
-    Announce("/break Gambling — " .. mode .. " for " .. gold .. "! Type 1 to join!")
+    Announce(mode .. " for " .. gold .. "! Type 1 to join, -1 to leave.")
 
     self:SendMessage("SBG_SESSION_STATE_CHANGED", SESSION_STATES.OPEN)
 end
@@ -150,7 +150,7 @@ function addon:LastCall()
 
     BroadcastMessage("LASTCALL")
 
-    Announce("/break Gambling — LAST CALL! Type 1 now or miss out!")
+    Announce("LAST CALL! Type 1 now or miss out!")
 
     self:SendMessage("SBG_SESSION_STATE_CHANGED", SESSION_STATES.LAST_CALL)
 end
@@ -185,7 +185,7 @@ function addon:CloseEntries()
 
     BroadcastMessage("CLOSE", rollAmount)
 
-    Announce("/break Gambling — Entries closed! Type /roll " .. rollAmount)
+    Announce("Entries closed! Type /roll " .. rollAmount)
 
     self:SendMessage("SBG_SESSION_STATE_CHANGED", SESSION_STATES.CLOSED)
 end
@@ -205,20 +205,29 @@ function addon:EndSession()
 
     UnregisterSessionEvents()
 
-    if isLeader then
-        if not self:HasUnrolledPlayers() and #self.session.players >= 2 then
-            local config = GetSelectedModuleConfig()
+    if not self:HasUnrolledPlayers() and #self.session.players >= 2 then
+        local config = GetSelectedModuleConfig()
 
-            if config.AnnounceResults then
-                local result = config.AnnounceResults(self.session.players, self.session.goldAmount)
-
-                if result then
-                    Announce("/break Gambling — " .. result)
-                end
-            end
+        if config.GetResult then
+            self.session.lastResult = config.GetResult(self.session.players, self.session.goldAmount)
         end
 
-        Announce("/break Gambling — Game ended!")
+        if isLeader and config.AnnounceResults then
+            local announcement = config.AnnounceResults(self.session.players, self.session.goldAmount)
+
+            if announcement then
+                Announce(announcement)
+            end
+        end
+    end
+
+    if isLeader then
+        Announce("Game ended!")
+    end
+
+    if self:HasUnrolledPlayers() then
+        self.session.players = {}
+        self.session.lastResult = nil
     end
 
     self.session.state = SESSION_STATES.IDLE
@@ -256,7 +265,7 @@ function addon:RequestRolls()
         return
     end
 
-    Announce("/break Gambling — Waiting on: " .. table.concat(unrolled, ", ") .. " — /roll " .. self.session.rollAmount)
+    Announce("Waiting on: " .. table.concat(unrolled, ", ") .. " — /roll " .. self.session.rollAmount)
 end
 
 --------------------------------------------------------------------------------
@@ -271,6 +280,41 @@ local function FindPlayer(players, name)
     end
 
     return nil, nil
+end
+
+local function FindPlayerByShortName(players, shortName)
+    for i, player in ipairs(players) do
+        local playerShortName = player.name:match("^([^%-]+)")
+
+        if playerShortName == shortName then
+            return i, player
+        end
+    end
+
+    return nil, nil
+end
+
+function addon:CanRollForMe()
+    if self:GetSessionState() ~= SESSION_STATES.CLOSED then
+        return false
+    end
+
+    local name = GetUnitName("player", true)
+    local _, player = FindPlayer(self.session.players, name)
+
+    if not player then
+        return false
+    end
+
+    return not player.roll
+end
+
+function addon:RollForMe()
+    if not self:CanRollForMe() then
+        return
+    end
+
+    RandomRoll(1, self.session.rollAmount)
 end
 
 local function AddPlayer(name)
@@ -312,7 +356,7 @@ function addon:OnChatMessage(event, msg, sender)
         return
     end
 
-    local name = Ambiguate(sender, "short")
+    local name = Ambiguate(sender, "none")
 
     if msg == "1" then
         AddPlayer(name)
@@ -343,7 +387,7 @@ function addon:OnSystemMessage(event, msg)
         return
     end
 
-    local index, player = FindPlayer(self.session.players, name)
+    local index, player = FindPlayerByShortName(self.session.players, name)
 
     if not index then
         return
@@ -365,21 +409,44 @@ end
 --- Addon Communication
 ---
 
+local DBM_PREFIX = "D5"
+local DBM_BREAK_TYPE = "BT"
+
+function addon:OnBreakTimerAddonMessage(event, prefix, message)
+    if prefix ~= DBM_PREFIX then
+        return
+    end
+
+    local parts = { strsplit("\t", message) }
+
+    if parts[3] ~= DBM_BREAK_TYPE then
+        return
+    end
+
+    self:SendMessage("SBG_BREAK_TIMER_STARTED")
+end
+
 function addon:OnAddonMessage(event, prefix, message, channel, sender)
+    if prefix == DBM_PREFIX then
+        self:OnBreakTimerAddonMessage(event, prefix, message)
+
+        return
+    end
+
     if prefix ~= ADDON_PREFIX then
         return
     end
 
-    local senderName = Ambiguate(sender, "short")
+    local senderName = Ambiguate(sender, "none")
 
-    if senderName == UnitName("player") then
+    if senderName == GetUnitName("player", true) then
         return
     end
 
     local command, payload = strsplit(":", message, 2)
 
     if command == "START" then
-        local goldAmount, moduleKey = strsplit(",", payload, 2)
+        local goldAmount, moduleKey = strsplit(":", payload, 2)
         self:OnRemoteStart(senderName, tonumber(goldAmount), moduleKey)
 
         return

@@ -45,7 +45,7 @@ local function UpdateGameButton(button, state)
 end
 
 StaticPopupDialogs["SBG_CONFIRM_END_GAME"] = {
-    text = "Players have not rolled. Are you sure you want to end the game?",
+    text = "Players have not rolled. Are you sure you want to end the game? The game will not be scored.",
     button1 = "Yes",
     button2 = "No",
     OnAccept = function()
@@ -70,7 +70,7 @@ local function OnClick(button)
     addon[button.handler](addon)
 end
 
-local function CreateGameButton(self, parentFrame)
+local function CreateGameButton(self, parentFrame, anchorElement, yOffset)
     local button = UI.Partials.CreateStyledButton(
         parentFrame,
         "SlashBreakGamblingGameButton",
@@ -79,7 +79,7 @@ local function CreateGameButton(self, parentFrame)
         "Start Game"
     )
 
-    button:SetPoint("TOP", parentFrame, "TOP", 0, -142)
+    button:SetPoint("TOP", anchorElement, "BOTTOM", 0, yOffset)
     button:SetScript("OnClick", OnClick)
 
     button.handler = "StartSession"

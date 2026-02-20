@@ -2,9 +2,7 @@ local addon = LibStub("AceAddon-3.0"):GetAddon("SlashBreakGambling")
 
 addon.defaults = {
     frame = {
-        shown = true,
-        width = 240,
-        height = 300,
+        shown = false,
         backgroundColor = { r = 0, g = 0, b = 0, a = 0.8 },
         position = {
             x = 0,
@@ -14,7 +12,7 @@ addon.defaults = {
         },
     },
     session = {
-        selectedModule = "LowPaysHigh",
+        selectedModule = "LowPaysHighDiff",
         goldAmount = 1000,
     },
 }

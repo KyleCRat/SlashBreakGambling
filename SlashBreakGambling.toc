@@ -23,11 +23,18 @@ Session.lua
 
 UI.lua
 UI/Partials/_Button.lua
+UI/Partials/_Divider.lua
+UI/Partials/_CloseButton.lua
+UI/Partials/_Title.lua
 UI/Frame.lua
 UI/PlayerList.lua
 UI/GoldSlider.lua
 UI/ModuleSelector.lua
+UI/RollForMeButton.lua
 UI/RequestRollsButton.lua
 UI/GameButton.lua
+UI/TokenPriceButton.lua
+UI/TogglePlayerListButton.lua
 
-Modules/LowPaysHigh.lua
+Modules/LowPaysHighDiff.lua
+Modules/LowPaysHighTotal.lua

@@ -4,24 +4,24 @@ local UI = addon:GetModule("UI")
 local STATES = addon.SESSION_STATES
 
 local function OnClick()
-    addon:RequestRolls()
+    addon:RollForMe()
 end
 
-local function UpdateRequestRollsButton(button, state)
-    if state == STATES.CLOSED and addon:IsSessionLeader() and addon:HasUnrolledPlayers() then
+local function UpdateRollForMeButton(button, state)
+    if state == STATES.CLOSED and addon:CanRollForMe() then
         button:Show()
     else
         button:Hide()
     end
 end
 
-local function CreateRequestRollsButton(self, parentFrame, anchorElement, yOffset)
+local function CreateRollForMeButton(self, parentFrame, anchorElement, yOffset)
     local button = UI.Partials.CreateStyledButton(
         parentFrame,
-        "SlashBreakGamblingRequestRollsButton",
+        "SlashBreakGamblingRollForMeButton",
         parentFrame:GetWidth() - 20,
         28,
-        "Request Rolls"
+        "Roll for Me"
     )
 
     button:SetPoint("TOP", anchorElement, "BOTTOM", 0, yOffset)
@@ -31,5 +31,5 @@ local function CreateRequestRollsButton(self, parentFrame, anchorElement, yOffse
     return button
 end
 
-UI.CreateRequestRollsButton = CreateRequestRollsButton
-UI.UpdateRequestRollsButton = UpdateRequestRollsButton
+UI.CreateRollForMeButton = CreateRollForMeButton
+UI.UpdateRollForMeButton = UpdateRollForMeButton

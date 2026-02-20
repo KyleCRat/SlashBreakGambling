@@ -37,17 +37,16 @@ local function UpdateModuleSelector(button, state)
     SetEnabled(button, state == STATES.IDLE)
 end
 
-local function CreateModuleSelector(self, parentFrame)
+local function CreateModuleSelector(self, parentFrame, anchorElement, yOffset, width)
     local button = UI.Partials.CreateStyledButton(
         parentFrame,
         "SlashBreakGamblingModuleSelector",
-        parentFrame:GetWidth() - 20,
+        width,
         28,
         GetSelectedLabel()
     )
 
-    button:SetPoint("TOP", parentFrame, "TOP", 0, -10)
-
+    button:SetPoint("TOPLEFT", anchorElement, "BOTTOMLEFT", 0, yOffset)
     button:SetScript("OnClick", OnClick)
 
     return button
