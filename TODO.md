@@ -2,14 +2,6 @@
 
 ## Cleanup
 
-- Hide frame by default
-- Add commands "s", "o", and "open", "h", and "hide" to toggle the frame 
-- The gold slider container should parent to the module button, so we don't need to offset from the top of the frame. So if we want to add a button above the module button everything will move down correctly. 
-
-## Smaller Features
-- Make a high pays low module so we can test two modules
-- Update the module button to open a dropdown where we can select from available modules (games)
-
 ## Major Features
 ### Store winnings and losses
 We should store winnings and losses in a database so we can see people's lifetime amounts of gold won or lost. 

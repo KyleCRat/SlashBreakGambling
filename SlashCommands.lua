@@ -10,6 +10,11 @@ end
 
 local commands = {
     show = ToggleFrame,
+    s    = ToggleFrame,
+    o    = ToggleFrame,
+    open = ToggleFrame,
+    h    = ToggleFrame,
+    hide = ToggleFrame,
 }
 
 local function HandleSlashCommand(input)
