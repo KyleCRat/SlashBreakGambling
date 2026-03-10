@@ -39,6 +39,7 @@ end
 function addon:OnInitialize()
     self:RegisterSlashCommands()
     self.db = LibStub("AddonDB-1.0"):New("SlashBreakGamblingDB", self.defaults)
+    self:RegisterMinimapButton()
 
     C_ChatInfo.RegisterAddonMessagePrefix("SBG")
     C_ChatInfo.RegisterAddonMessagePrefix("D5")

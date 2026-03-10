@@ -11,17 +11,18 @@ end
 local commands = {
     show = ToggleFrame,
     s    = ToggleFrame,
-    o    = ToggleFrame,
     open = ToggleFrame,
-    h    = ToggleFrame,
+    o    = ToggleFrame,
     hide = ToggleFrame,
+    h    = ToggleFrame,
 }
 
 local function HandleSlashCommand(input)
     local command = addon:GetArgs(input)
 
     if not command or command == "" then
-        addon:Print("Usage: /sbg <command>")
+        addon:Print("Available commands:")
+        addon:Print("  /sbg show  - Toggle the gambling window (aliases: s, o, open, h, hide)")
 
         return
     end

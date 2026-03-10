@@ -11,6 +11,9 @@ addon.defaults = {
             relativePoint = "CENTER",
         },
     },
+    minimap = {
+        hide = false,
+    },
     session = {
         selectedModule = "LowPaysHighDiff",
         goldAmount = 1000,
