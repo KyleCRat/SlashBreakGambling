@@ -12,6 +12,8 @@ Open the addon window with:
 /sbg show  (or /sbg s)
 ```
 
+or left click the minimap button to open.
+
 All of the above toggle the window open or closed. Your window position and whether it was open are saved between sessions.
 
 ---
