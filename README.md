@@ -42,6 +42,8 @@ Only the session leader can click the game button. If you end a game while playe
 
 **Toggle Player List button** — Shows or hides the player list panel, which displays each player, their class color, and their roll result.
 
+**Stats button** — Shows or hides the statistics panel, which displays the top 10 winners and top 10 losers with their net gold. Includes buttons to report stats to party/raid chat.
+
 ---
 
 ## How a Game Works
@@ -105,9 +107,15 @@ Only the session leader drives game logic and makes announcements to chat.
 
 ---
 
-## Planned Features
+## Stats Tracking
 
-- **Winnings & losses tracking** — Record each player's cumulative gold won and lost across sessions, viewable in the UI.
+The addon automatically tracks each player's net gold won or lost across all games. Stats are stored per-character and updated for all addon users when a game ends.
+
+- Click **Show Stats** to view the top 10 winners and losers
+- Use **Report Top 3** to announce the top 3 winners and losers to chat (one line each)
+- Use **Report All** to send all stats to chat in batched messages
+
+Stats can also be managed via slash commands (see below).
 
 ---
 
@@ -119,3 +127,10 @@ Only the session leader drives game logic and makes announcements to chat.
 | `/sbg s` | Toggle the window |
 | `/sbg open` / `/sbg o` | Toggle the window |
 | `/sbg hide` / `/sbg h` | Toggle the window |
+| `/sbg stats` | Print all stats to local chat |
+| `/sbg stats <name>` | Look up a specific player's stats |
+| `/sbg stats add <name> <amount>` | Adjust a player's net gold |
+| `/sbg stats rm <name>` | Remove a player from stats |
+| `/sbg stats reset` | Reset all stats (with confirmation) |
+
+Player names can be entered as `Name-Realm` or just `Name` (defaults to your realm). Lookups are case-insensitive.
