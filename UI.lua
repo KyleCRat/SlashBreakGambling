@@ -23,6 +23,10 @@ local function OnSessionStateChanged(event, state)
         UI.UpdateTogglePlayerListButton(frame.togglePlayerListButton, state)
     end
 
+    if frame.statsButton then
+        UI.UpdateStatsButton(frame.statsButton, state)
+    end
+
     if frame.joinLeaveButton then
         UI.UpdateJoinLeaveButton(frame.joinLeaveButton, state)
     end
@@ -46,6 +50,10 @@ local function OnSessionStateChanged(event, state)
     if frame.playerList then
         if state ~= addon.SESSION_STATES.IDLE then
             frame.playerList:Show()
+
+            if frame.statsFrame and frame.statsFrame:IsShown() then
+                frame.statsFrame:Hide()
+            end
         end
 
         UI.RefreshPlayerList(frame.playerList)
@@ -138,6 +146,18 @@ local function OnPlayerRolled(event, name, roll)
     end
 end
 
+local function OnStatsUpdated()
+    local frame = UI.frame
+
+    if not frame or not frame.statsFrame then
+        return
+    end
+
+    if frame.statsFrame:IsShown() then
+        UI.RefreshStatsFrame(frame.statsFrame)
+    end
+end
+
 local BUTTON_SPACING = -6
 local SECTION_SPACING = -10
 local CLOSE_BUTTON_SIZE = 20
@@ -181,6 +201,11 @@ function UI:OnEnable()
     frame.togglePlayerListButton = self:CreateTogglePlayerListButton(frame,
         frame.tokenPriceButton, BUTTON_SPACING)
 
+    frame.statsButton = self:CreateStatsButton(frame,
+        frame.togglePlayerListButton, BUTTON_SPACING)
+
+    frame.statsFrame = self:CreateStatsFrame(frame)
+
     frame.requestRollsButton = self:CreateRequestRollsButton(frame,
         frame.gameButton, BUTTON_SPACING)
 
@@ -198,4 +223,5 @@ function UI:OnEnable()
     self:RegisterMessage("SBG_PLAYER_LEFT", OnPlayerChanged)
     self:RegisterMessage("SBG_PLAYER_ROLLED", OnPlayerRolled)
     self:RegisterMessage("SBG_SESSION_ROLL_ADVANCED", OnRollAdvanced)
+    self:RegisterMessage("SBG_STATS_UPDATED", OnStatsUpdated)
 end

@@ -2,7 +2,7 @@ local addon = LibStub("AceAddon-3.0"):GetAddon("SlashBreakGambling")
 local UI = addon:GetModule("UI")
 
 local FRAME_WIDTH = 240
-local FRAME_HEIGHT = 268
+local FRAME_HEIGHT = 302
 
 local function CreateMainFrame()
     local db = addon.db

@@ -210,6 +210,32 @@ function addon:CloseEntries()
     self:SendMessage("SBG_SESSION_STATE_CHANGED", SESSION_STATES.CLOSED)
 end
 
+local function BroadcastAndUpdateStats(session)
+    local result = session.lastResult
+
+    if not result or result.tie then
+        return
+    end
+
+    local winner = result.winner
+
+    if not winner then
+        return
+    end
+
+    local losers = result.losers and result.losers or { result.loser }
+    local amountPerLoser
+
+    if result.losers then
+        amountPerLoser = session.goldAmount
+    else
+        amountPerLoser = result.amount
+    end
+
+    BroadcastMessage("RESULT", amountPerLoser, winner, unpack(losers))
+    addon:UpdateStats(amountPerLoser, winner, losers)
+end
+
 function addon:EndSession()
     local state = self:GetSessionState()
 
@@ -218,10 +244,6 @@ function addon:EndSession()
     end
 
     local isLeader = self:IsSessionLeader()
-
-    if isLeader then
-        BroadcastMessage("END")
-    end
 
     UnregisterSessionEvents()
 
@@ -232,6 +254,8 @@ function addon:EndSession()
     end
 
     if isLeader and self.session.lastResult then
+        BroadcastAndUpdateStats(self.session)
+
         if config.AnnounceResults then
             local announcement = config.AnnounceResults(self.session.players, self.session.goldAmount, self.session.lastResult)
 
@@ -245,6 +269,10 @@ function addon:EndSession()
         Announce("Game ended!")
         self.session.players = {}
         self.session.lastResult = nil
+    end
+
+    if isLeader then
+        BroadcastMessage("END")
     end
 
     self.session.state = SESSION_STATES.IDLE
@@ -597,9 +625,28 @@ function addon:OnAddonMessage(event, prefix, message, channel, sender)
         return
     end
 
+    if command == "RESULT" then
+        self:OnRemoteResult(payload)
+
+        return
+    end
+
     if command == "END" then
         self:OnRemoteEnd(senderName)
     end
+end
+
+function addon:OnRemoteResult(payload)
+    local parts = { strsplit(":", payload) }
+    local amountPerLoser = tonumber(parts[1])
+    local winner = parts[2]
+    local losers = {}
+
+    for i = 3, #parts do
+        table.insert(losers, parts[i])
+    end
+
+    self:UpdateStats(amountPerLoser, winner, losers)
 end
 
 function addon:OnRemoteStart(leader, goldAmount, moduleKey)

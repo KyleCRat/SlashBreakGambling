@@ -23,6 +23,7 @@ SlashCommands.lua
 Defaults.lua
 Functions.lua
 Session.lua
+Stats.lua
 
 UI.lua
 UI/Partials/_Button.lua
@@ -39,6 +40,8 @@ UI/GameButton.lua
 UI/TokenPriceButton.lua
 UI/TogglePlayerListButton.lua
 UI/JoinLeaveButton.lua
+UI/StatsButton.lua
+UI/StatsFrame.lua
 
 Modules/LowPaysHighDiff.lua
 Modules/LowPaysHighTotal.lua

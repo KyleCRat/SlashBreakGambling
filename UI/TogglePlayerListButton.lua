@@ -20,7 +20,21 @@ local function OnClick(button)
         return
     end
 
-    playerList:SetShown(not playerList:IsShown())
+    local showing = not playerList:IsShown()
+    playerList:SetShown(showing)
+
+    if showing then
+        local statsFrame = UI.frame.statsFrame
+
+        if statsFrame and statsFrame:IsShown() then
+            statsFrame:Hide()
+
+            if UI.frame.statsButton then
+                UI.frame.statsButton.text:SetText("Show Stats")
+            end
+        end
+    end
+
     button.text:SetText(GetButtonText())
 end
 
