@@ -1,5 +1,5 @@
 ## Interface: 120000, 120001
-## Version: 12.0.1-3
+## Version: 12.0.1-4
 ## Title: /break Gambling
 ## Notes: Simple gambling addon for your raid breaks
 ## Author: Yvairel
@@ -33,6 +33,7 @@ UI/Partials/_Title.lua
 UI/Frame.lua
 UI/PlayerList.lua
 UI/GoldSlider.lua
+UI/GuildCutButton.lua
 UI/ModuleSelector.lua
 UI/RollForMeButton.lua
 UI/RequestRollsButton.lua

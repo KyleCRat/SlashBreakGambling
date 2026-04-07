@@ -26,6 +26,8 @@ The window has the following sections from top to bottom:
 
 **Gold Amount slider** — Sets the gold stake for the next game. Use the **Use Token Price** button (visible below the game button when idle) to automatically set the amount to the current WoW Token market price.
 
+**Guild Cut** — Sets a percentage of winnings that goes to the guild. Left click the button to cycle through presets (0%, 5%, 10%, 25%, 50%, 75%), right click to reset to 0%, or type any value from 0–100 in the text box. When guild cut is active, results announce how much the winner keeps and how much goes to the guild. Stats are not affected by guild cut.
+
 **Game button** — Drives the session through its states:
 - **Start Game** — Opens entries and announces the game in party/raid chat
 - **Last Call** — Warns players this is their last chance to join
