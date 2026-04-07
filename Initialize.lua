@@ -22,16 +22,6 @@ end
 --- Lifecycle
 ---
 
-local BREAK_TIMER_TYPE = 3
-
-function addon:OnBreakTimerStart(event, timerType)
-    if timerType ~= BREAK_TIMER_TYPE then
-        return
-    end
-
-    self:SendMessage("SBG_BREAK_TIMER_STARTED")
-end
-
 function addon:OnEncounterStart()
     self:SendMessage("SBG_ENCOUNTER_STARTED")
 end
@@ -44,7 +34,6 @@ function addon:OnInitialize()
     C_ChatInfo.RegisterAddonMessagePrefix("SBG")
     C_ChatInfo.RegisterAddonMessagePrefix("D5")
     self:RegisterEvent("CHAT_MSG_ADDON", "OnAddonMessage")
-    self:RegisterEvent("START_TIMER", "OnBreakTimerStart")
     self:RegisterEvent("ENCOUNTER_START", "OnEncounterStart")
 
     self:Hook(self, "EnableModule", OnEnableModule)
