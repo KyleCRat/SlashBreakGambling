@@ -63,7 +63,7 @@ Players who also have the addon installed will additionally see live updates in 
 
 ### Auto-open on break timer
 
-If Deadly Boss Mods (DBM) is installed and the raid leader starts a break timer, the addon window will open automatically. It will close automatically when an encounter starts.
+If Deadly Boss Mods (DBM) or BigWigs is installed and the raid leader starts a break timer, the addon window will open automatically. It will close automatically when an encounter starts.
 
 ---
 
