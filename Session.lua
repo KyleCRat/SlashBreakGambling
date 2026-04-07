@@ -236,6 +236,37 @@ local function BroadcastAndUpdateStats(session)
     addon:UpdateStats(amountPerLoser, winner, losers)
 end
 
+local function GetGuildCutAnnouncement(session)
+    local guildCut = addon.db:Get("session", "guildCut")
+
+    if guildCut == 0 then
+        return nil
+    end
+
+    local result = session.lastResult
+
+    if not result or result.tie or not result.winner then
+        return nil
+    end
+
+    if result.losers then
+        local guildPerLoser = math.floor(session.goldAmount * guildCut / 100)
+        local winnerPerLoser = session.goldAmount - guildPerLoser
+        local loserList = table.concat(result.losers, ", ")
+
+        local msg = loserList .. " each owe " .. result.winner .. " " .. BreakUpLargeNumbers(winnerPerLoser) .. "g and guild " .. BreakUpLargeNumbers(guildPerLoser) .. "g!"
+        local totalWinner = winnerPerLoser * #result.losers
+        local totalGuild = guildPerLoser * #result.losers
+
+        return msg .. " (" .. BreakUpLargeNumbers(totalWinner) .. "g to " .. result.winner .. ", " .. BreakUpLargeNumbers(totalGuild) .. "g to guild)"
+    end
+
+    local guildAmount = math.floor(result.amount * guildCut / 100)
+    local winnerAmount = result.amount - guildAmount
+
+    return result.loser .. " owes " .. result.winner .. " " .. BreakUpLargeNumbers(winnerAmount) .. "g and guild " .. BreakUpLargeNumbers(guildAmount) .. "g!"
+end
+
 function addon:EndSession()
     local state = self:GetSessionState()
 
@@ -256,7 +287,11 @@ function addon:EndSession()
     if isLeader and self.session.lastResult then
         BroadcastAndUpdateStats(self.session)
 
-        if config.AnnounceResults then
+        local guildCutAnnouncement = GetGuildCutAnnouncement(self.session)
+
+        if guildCutAnnouncement then
+            Announce(guildCutAnnouncement)
+        elseif config.AnnounceResults then
             local announcement = config.AnnounceResults(self.session.players, self.session.goldAmount, self.session.lastResult)
 
             if announcement then

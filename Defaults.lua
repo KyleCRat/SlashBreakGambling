@@ -17,5 +17,6 @@ addon.defaults = {
     session = {
         selectedModule = "LowPaysHighDiff",
         goldAmount = 1000,
+        guildCut = 0,
     },
 }

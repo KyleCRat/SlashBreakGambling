@@ -79,7 +79,7 @@ local function CreateGameButton(self, parentFrame, anchorElement, yOffset)
         "Start Game"
     )
 
-    button:SetPoint("TOP", anchorElement, "BOTTOM", 0, yOffset)
+    button:SetPoint("TOPLEFT", anchorElement, "BOTTOMLEFT", 0, yOffset)
     button:SetScript("OnClick", OnClick)
 
     button.handler = "StartSession"

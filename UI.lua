@@ -43,6 +43,10 @@ local function OnSessionStateChanged(event, state)
         UI.UpdateGoldSlider(frame.goldSlider, state)
     end
 
+    if frame.guildCutButton then
+        UI.UpdateGuildCutButton(frame.guildCutButton, state)
+    end
+
     if frame.moduleSelector then
         UI.UpdateModuleSelector(frame.moduleSelector, state)
     end
@@ -189,8 +193,11 @@ function UI:OnEnable()
     frame.goldSlider = self:CreateGoldSlider(frame,
         frame.dividerTwo, BUTTON_SPACING)
 
-    frame.gameButton = self:CreateGameButton(frame,
+    frame.guildCutButton = self:CreateGuildCutButton(frame,
         frame.goldSlider, SECTION_SPACING)
+
+    frame.gameButton = self:CreateGameButton(frame,
+        frame.guildCutButton, BUTTON_SPACING)
 
     frame.joinLeaveButton = self:CreateJoinLeaveButton(frame,
         frame.gameButton, BUTTON_SPACING)
