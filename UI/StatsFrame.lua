@@ -56,12 +56,14 @@ local function BuildReportLines(winners, losers, maxEntries)
 
     for i = 1, winCount do
         local entry = winners[i]
-        table.insert(lines, addon.ABBR .. " " .. i .. ". " .. entry.name .. " " .. FormatGold(entry.net))
+        table.insert(lines, addon.ABBR .. " " .. entry.name .. " " .. FormatGold(entry.net))
     end
 
-    for i = 1, loseCount do
+    table.insert(lines, addon.ABBR .. " ----------")
+
+    for i = loseCount, 1, -1 do
         local entry = losers[i]
-        table.insert(lines, addon.ABBR .. " " .. (winCount + i) .. ". " .. entry.name .. " " .. FormatGold(entry.net))
+        table.insert(lines, addon.ABBR .. " " .. entry.name .. " " .. FormatGold(entry.net))
     end
 
     return lines
