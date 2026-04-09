@@ -5,8 +5,15 @@ local ROW_HEIGHT = 18
 local PADDING = 8
 local SECTION_SPACING = 6
 local MIN_HEIGHT = 40
-local MAX_DISPLAY = 10
+local MAX_DISPLAY = 20
 local CHAT_MAX_LENGTH = 255
+local DIVIDER_HEIGHT = 2
+
+local COLOR_GOLD = { 1, 0.82, 0 }
+local COLOR_SILVER = { 0.75, 0.75, 0.75 }
+local COLOR_BRONZE = { 0.8, 0.5, 0.2 }
+local COLOR_GREEN = { 0.4, 1, 0.4 }
+local COLOR_RED = { 1, 0.4, 0.4 }
 
 local function PositionAtOffset(frame, element, yOffset)
     element:ClearAllPoints()
@@ -27,6 +34,10 @@ local function CreateRow(parent)
     return row
 end
 
+local function ShortName(fullName)
+    return fullName:match("^([^%-]+)") or fullName
+end
+
 local function FormatGold(amount)
     local formatted = BreakUpLargeNumbers(math.abs(amount))
 
@@ -35,6 +46,26 @@ local function FormatGold(amount)
     end
 
     return "-" .. formatted .. "g"
+end
+
+local function GetRowColor(rank, net)
+    if net < 0 then
+        return COLOR_RED
+    end
+
+    if rank == 1 then
+        return COLOR_GOLD
+    end
+
+    if rank == 2 then
+        return COLOR_SILVER
+    end
+
+    if rank == 3 then
+        return COLOR_BRONZE
+    end
+
+    return COLOR_GREEN
 end
 
 local function GetChatChannel()
@@ -150,85 +181,77 @@ local function OnReportAllClick()
     end
 end
 
+local function MergeSorted(winners, losers)
+    local all = {}
+
+    for _, entry in ipairs(winners) do
+        table.insert(all, entry)
+    end
+
+    for _, entry in ipairs(losers) do
+        table.insert(all, entry)
+    end
+
+    table.sort(all, function(a, b)
+        return a.net > b.net
+    end)
+
+    return all
+end
+
 local function RefreshStatsFrame(frame)
-    for _, row in ipairs(frame.winnerRows) do
+    for _, row in ipairs(frame.rows) do
         row:Hide()
     end
 
-    for _, row in ipairs(frame.loserRows) do
-        row:Hide()
-    end
+    frame.divider:Hide()
 
     local winners, losers = addon:GetSortedStats()
+    local all = MergeSorted(winners, losers)
+    local displayCount = math.min(MAX_DISPLAY, #all)
     local yOffset = PADDING
 
     -- Header
     PositionAtOffset(frame, frame.headerLabel, yOffset)
     yOffset = yOffset + ROW_HEIGHT + SECTION_SPACING
 
-    -- Winners section
-    local winnerCount = math.min(MAX_DISPLAY, #winners)
+    if displayCount > 0 then
+        local dividerPlaced = false
 
-    if winnerCount > 0 then
-        PositionAtOffset(frame, frame.winnersLabel, yOffset)
-        frame.winnersLabel:Show()
-        yOffset = yOffset + ROW_HEIGHT
+        for i = 1, displayCount do
+            local entry = all[i]
 
-        for i = 1, winnerCount do
-            if not frame.winnerRows[i] then
-                frame.winnerRows[i] = CreateRow(frame)
+            if not dividerPlaced and entry.net < 0 then
+                yOffset = yOffset + 4
+                frame.divider:ClearAllPoints()
+                frame.divider:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING, -yOffset)
+                frame.divider:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -yOffset)
+                frame.divider:Show()
+                yOffset = yOffset + DIVIDER_HEIGHT + SECTION_SPACING - 1
+                dividerPlaced = true
             end
 
-            local row = frame.winnerRows[i]
-            row.name:SetText(i .. ". " .. winners[i].name)
-            row.name:SetTextColor(0.4, 1, 0.4, 1)
-            row.amount:SetText(FormatGold(winners[i].net))
-            row.amount:SetTextColor(0.4, 1, 0.4, 1)
+            if not frame.rows[i] then
+                frame.rows[i] = CreateRow(frame)
+            end
+
+            local row = frame.rows[i]
+            local color = GetRowColor(i, entry.net)
+            row.name:SetText(i .. ". " .. ShortName(entry.name))
+            row.name:SetTextColor(color[1], color[2], color[3], 1)
+            row.amount:SetText(FormatGold(entry.net))
+            row.amount:SetTextColor(color[1], color[2], color[3], 1)
             PositionAtOffset(frame, row, yOffset)
             row:Show()
             yOffset = yOffset + ROW_HEIGHT
         end
 
         yOffset = yOffset + SECTION_SPACING
+        frame.emptyLabel:Hide()
     else
-        frame.winnersLabel:Hide()
-    end
-
-    -- Losers section
-    local loserCount = math.min(MAX_DISPLAY, #losers)
-
-    if loserCount > 0 then
-        PositionAtOffset(frame, frame.losersLabel, yOffset)
-        frame.losersLabel:Show()
-        yOffset = yOffset + ROW_HEIGHT
-
-        for i = 1, loserCount do
-            if not frame.loserRows[i] then
-                frame.loserRows[i] = CreateRow(frame)
-            end
-
-            local row = frame.loserRows[i]
-            row.name:SetText(i .. ". " .. losers[i].name)
-            row.name:SetTextColor(1, 0.4, 0.4, 1)
-            row.amount:SetText(FormatGold(losers[i].net))
-            row.amount:SetTextColor(1, 0.4, 0.4, 1)
-            PositionAtOffset(frame, row, yOffset)
-            row:Show()
-            yOffset = yOffset + ROW_HEIGHT
-        end
-
-        yOffset = yOffset + SECTION_SPACING
-    else
-        frame.losersLabel:Hide()
-    end
-
-    -- No data message
-    if winnerCount == 0 and loserCount == 0 then
         PositionAtOffset(frame, frame.emptyLabel, yOffset)
         frame.emptyLabel:Show()
         yOffset = yOffset + ROW_HEIGHT + SECTION_SPACING
-    else
-        frame.emptyLabel:Hide()
     end
 
     -- Buttons
@@ -268,23 +291,16 @@ local function CreateStatsFrame(self, parentFrame)
     frame.headerLabel:SetText("Statistics")
     frame.headerLabel:SetTextColor(1, 0.82, 0, 1)
 
-    frame.winnersLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    frame.winnersLabel:SetJustifyH("LEFT")
-    frame.winnersLabel:SetText("Winners")
-    frame.winnersLabel:SetTextColor(0.4, 1, 0.4, 1)
-
-    frame.losersLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    frame.losersLabel:SetJustifyH("LEFT")
-    frame.losersLabel:SetText("Losers")
-    frame.losersLabel:SetTextColor(1, 0.4, 0.4, 1)
-
     frame.emptyLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     frame.emptyLabel:SetJustifyH("CENTER")
     frame.emptyLabel:SetText("No stats recorded yet.")
     frame.emptyLabel:SetTextColor(0.5, 0.5, 0.5, 1)
 
-    frame.winnerRows = {}
-    frame.loserRows = {}
+    frame.divider = frame:CreateTexture(nil, "ARTWORK")
+    frame.divider:SetHeight(DIVIDER_HEIGHT)
+    frame.divider:SetColorTexture(0.3, 0.3, 0.3, 1)
+
+    frame.rows = {}
 
     frame.reportTop3Button = UI.Partials.CreateStyledButton(
         frame, "SlashBreakGamblingReportTop3", 200, 24, "Report Top 3")
