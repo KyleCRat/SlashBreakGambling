@@ -44,7 +44,7 @@ Only the session leader can click the game button. If you end a game while playe
 
 **Toggle Player List button** — Shows or hides the player list panel, which displays each player, their class color, and their roll result.
 
-**Stats button** — Shows or hides the statistics panel, which displays the top 10 winners and top 10 losers with their net gold. Includes buttons to report stats to party/raid chat.
+**Stats button** — Shows or hides the statistics panel, which displays all tracked players ranked from highest to lowest net gold. The top 3 winners are highlighted in gold, silver, and bronze. Includes buttons to report stats to party/raid chat.
 
 ---
 
@@ -113,7 +113,7 @@ Only the session leader drives game logic and makes announcements to chat.
 
 The addon automatically tracks each player's net gold won or lost across all games. Stats are stored per-character and updated for all addon users when a game ends.
 
-- Click **Show Stats** to view the top 10 winners and losers
+- Click **Show Stats** to view all players ranked by net gold (gold/silver/bronze for top 3)
 - Use **Report Top 3** to announce the top 3 winners and losers to chat (one line each)
 - Use **Report All** to send all stats to chat in batched messages
 
