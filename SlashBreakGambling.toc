@@ -1,4 +1,4 @@
-## Interface: 120000, 120001
+## Interface: 120001, 120005
 ## Version: 12.0.1-6
 ## Title: /break Gambling
 ## Notes: Simple gambling addon for your raid breaks
