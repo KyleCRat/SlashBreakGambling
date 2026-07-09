@@ -113,7 +113,7 @@ Only the session leader drives game logic and makes announcements to chat.
 
 The addon automatically tracks each player's net gold won or lost across all games. Stats are stored per-character and updated for all addon users when a game ends.
 
-- Click **Show Stats** to view all players ranked by net gold (gold/silver/bronze for top 3)
+- Click **Show Stats** to view the top 15 winners and bottom 15 losers by net gold (gold/silver/bronze for top 3)
 - Use **Report Top 3** to announce the top 3 winners and losers to chat (one line each)
 - Use **Report All** to send all stats to chat in batched messages
 
