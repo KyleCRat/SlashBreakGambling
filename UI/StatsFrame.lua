@@ -5,7 +5,7 @@ local ROW_HEIGHT = 18
 local PADDING = 8
 local SECTION_SPACING = 6
 local MIN_HEIGHT = 40
-local MAX_DISPLAY = 20
+local MAX_SECTION_DISPLAY = 15
 local CHAT_MAX_LENGTH = 255
 local DIVIDER_HEIGHT = 2
 
@@ -181,24 +181,6 @@ local function OnReportAllClick()
     end
 end
 
-local function MergeSorted(winners, losers)
-    local all = {}
-
-    for _, entry in ipairs(winners) do
-        table.insert(all, entry)
-    end
-
-    for _, entry in ipairs(losers) do
-        table.insert(all, entry)
-    end
-
-    table.sort(all, function(a, b)
-        return a.net > b.net
-    end)
-
-    return all
-end
-
 local function RefreshStatsFrame(frame)
     for _, row in ipairs(frame.rows) do
         row:Hide()
@@ -207,8 +189,9 @@ local function RefreshStatsFrame(frame)
     frame.divider:Hide()
 
     local winners, losers = addon:GetSortedStats()
-    local all = MergeSorted(winners, losers)
-    local displayCount = math.min(MAX_DISPLAY, #all)
+    local winnerCount = math.min(MAX_SECTION_DISPLAY, #winners)
+    local loserCount = math.min(MAX_SECTION_DISPLAY, #losers)
+    local displayCount = winnerCount + loserCount
     local yOffset = PADDING
 
     -- Header
@@ -216,34 +199,53 @@ local function RefreshStatsFrame(frame)
     yOffset = yOffset + ROW_HEIGHT + SECTION_SPACING
 
     if displayCount > 0 then
-        local dividerPlaced = false
+        local rowIndex = 1
 
-        for i = 1, displayCount do
-            local entry = all[i]
+        for i = 1, winnerCount do
+            local entry = winners[i]
 
-            if not dividerPlaced and entry.net < 0 then
-                yOffset = yOffset + 4
-                frame.divider:ClearAllPoints()
-                frame.divider:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING, -yOffset)
-                frame.divider:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -yOffset)
-                frame.divider:Show()
-                yOffset = yOffset + DIVIDER_HEIGHT + SECTION_SPACING - 1
-                dividerPlaced = true
+            if not frame.rows[rowIndex] then
+                frame.rows[rowIndex] = CreateRow(frame)
             end
 
-            if not frame.rows[i] then
-                frame.rows[i] = CreateRow(frame)
-            end
-
-            local row = frame.rows[i]
+            local row = frame.rows[rowIndex]
             local color = GetRowColor(i, entry.net)
-            row.name:SetText(i .. ". " .. ShortName(entry.name))
+            row.name:SetText(rowIndex .. ". " .. ShortName(entry.name))
             row.name:SetTextColor(color[1], color[2], color[3], 1)
             row.amount:SetText(FormatGold(entry.net))
             row.amount:SetTextColor(color[1], color[2], color[3], 1)
             PositionAtOffset(frame, row, yOffset)
             row:Show()
             yOffset = yOffset + ROW_HEIGHT
+            rowIndex = rowIndex + 1
+        end
+
+        if winnerCount > 0 and loserCount > 0 then
+            yOffset = yOffset + 4
+            frame.divider:ClearAllPoints()
+            frame.divider:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING, -yOffset)
+            frame.divider:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -yOffset)
+            frame.divider:Show()
+            yOffset = yOffset + DIVIDER_HEIGHT + SECTION_SPACING - 1
+        end
+
+        for i = loserCount, 1, -1 do
+            local entry = losers[i]
+
+            if not frame.rows[rowIndex] then
+                frame.rows[rowIndex] = CreateRow(frame)
+            end
+
+            local row = frame.rows[rowIndex]
+            local color = GetRowColor(i, entry.net)
+            row.name:SetText(rowIndex .. ". " .. ShortName(entry.name))
+            row.name:SetTextColor(color[1], color[2], color[3], 1)
+            row.amount:SetText(FormatGold(entry.net))
+            row.amount:SetTextColor(color[1], color[2], color[3], 1)
+            PositionAtOffset(frame, row, yOffset)
+            row:Show()
+            yOffset = yOffset + ROW_HEIGHT
+            rowIndex = rowIndex + 1
         end
 
         yOffset = yOffset + SECTION_SPACING
