@@ -132,13 +132,26 @@ local function HandleStatsCommand(rest)
     addon:Print(name .. ": " .. FormatGold(net))
 end
 
+local function PrintHelp()
+    addon:Print("Available commands:")
+    addon:Print("  /sbg - Toggle the gambling window")
+    addon:Print("  /sbg help - Show this help (alias: h)")
+    addon:Print("  /sbg show - Toggle the gambling window (aliases: s, open, o, hide)")
+    addon:Print("  /sbg stats - View all player stats")
+    addon:Print("  /sbg stats <name> - View a player's stats")
+    addon:Print("  /sbg stats add <name> <amount> - Adjust a player's stats")
+    addon:Print("  /sbg stats rm <name> - Remove a player from stats")
+    addon:Print("  /sbg stats reset - Reset all stats")
+end
+
 local commands = {
-    show  = ToggleFrame,
-    s     = ToggleFrame,
-    open  = ToggleFrame,
-    o     = ToggleFrame,
-    hide  = ToggleFrame,
-    h     = ToggleFrame,
+    show = ToggleFrame,
+    s = ToggleFrame,
+    open = ToggleFrame,
+    o = ToggleFrame,
+    hide = ToggleFrame,
+    help = PrintHelp,
+    h = PrintHelp,
 }
 
 local function HandleSlashCommand(input)
@@ -146,13 +159,7 @@ local function HandleSlashCommand(input)
     command = (command or ""):lower()
 
     if command == "" then
-        addon:Print("Available commands:")
-        addon:Print("  /sbg show  - Toggle the gambling window (aliases: s, o, open, h, hide)")
-        addon:Print("  /sbg stats - View all player stats")
-        addon:Print("  /sbg stats <name> - View a player's stats")
-        addon:Print("  /sbg stats add <name> <amount> - Adjust a player's stats")
-        addon:Print("  /sbg stats rm <name> - Remove a player from stats")
-        addon:Print("  /sbg stats reset - Reset all stats")
+        ToggleFrame(addon)
 
         return
     end

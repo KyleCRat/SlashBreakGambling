@@ -9,12 +9,12 @@ A World of Warcraft addon for running gold gambling games during raid breaks. Su
 Open the addon window with:
 
 ```
-/sbg show  (or /sbg s)
+/sbg
 ```
 
-or left click the minimap button to open.
+You can also left click the minimap button to toggle the window.
 
-All of the above toggle the window open or closed. Your window position and whether it was open are saved between sessions.
+Your window position and whether it was open are saved between sessions. Use `/sbg help` or `/sbg h` to print all available commands.
 
 ---
 
@@ -125,10 +125,12 @@ Stats can also be managed via slash commands (see below).
 
 | Command | Description |
 |---|---|
+| `/sbg` | Toggle the window |
+| `/sbg help` / `/sbg h` | Print command help |
 | `/sbg show` | Toggle the window |
 | `/sbg s` | Toggle the window |
 | `/sbg open` / `/sbg o` | Toggle the window |
-| `/sbg hide` / `/sbg h` | Toggle the window |
+| `/sbg hide` | Toggle the window |
 | `/sbg stats` | Print all stats to local chat |
 | `/sbg stats <name>` | Look up a specific player's stats |
 | `/sbg stats add <name> <amount>` | Adjust a player's net gold |
