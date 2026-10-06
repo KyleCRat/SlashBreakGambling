@@ -1,5 +1,5 @@
-## Interface: 120007, 120100
-## Version: 12.1.0-10
+## Interface: 120100, 120105
+## Version: 12.1.5-11
 ## Title: /break Gambling
 ## Notes: Simple gambling addon for your raid breaks
 ## Author: Yvairel
