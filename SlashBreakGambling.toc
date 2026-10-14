@@ -26,6 +26,9 @@ Functions.lua
 Session.lua
 Stats.lua
 
+Migrations/Initialize.lua
+Migrations/001_NormalizeStatNames.lua
+
 UI.lua
 UI/Partials/_Button.lua
 UI/Partials/_Divider.lua

@@ -7,7 +7,7 @@ local STATE_CONFIG = {
     [STATES.IDLE]      = { text = "Start Game",     handler = "StartSession" },
     [STATES.OPEN]      = { text = "Last Call",      handler = "LastCall" },
     [STATES.LAST_CALL] = { text = "Close Entries",  handler = "CloseEntries" },
-    [STATES.CLOSED]    = { text = "End Game",       handler = "EndSession" },
+    [STATES.CLOSED]    = { text = "End Game",       handler = "CancelSession" },
 }
 
 local function SetButtonEnabled(button, enabled)
@@ -23,12 +23,12 @@ end
 local function UpdateGameButton(button, state)
     local config = STATE_CONFIG[state] or STATE_CONFIG[STATES.IDLE]
     local players = addon.session and addon.session.players or {}
-    local hasPlayers = #players > 0
+    local hasEnoughPlayers = #players >= addon.MIN_SESSION_PLAYERS
     local isLeader = addon:IsSessionLeader()
 
-    if not hasPlayers and (state == STATES.OPEN or state == STATES.LAST_CALL) then
+    if not hasEnoughPlayers and (state == STATES.OPEN or state == STATES.LAST_CALL) then
         button.text:SetText("End Game")
-        button.handler = "EndSession"
+        button.handler = "CancelSession"
         SetButtonEnabled(button, isLeader)
 
         return
@@ -45,11 +45,13 @@ local function UpdateGameButton(button, state)
 end
 
 StaticPopupDialogs["SBG_CONFIRM_END_GAME"] = {
-    text = "Players have not rolled. Are you sure you want to end the game? The game will not be scored.",
+    text = "Are you sure you want to end this unfinished game? The game will not be scored.",
     button1 = "Yes",
     button2 = "No",
-    OnAccept = function()
-        addon:EndSession()
+    OnAccept = function(self, session)
+        if addon.session == session then
+            addon:CancelSession()
+        end
     end,
     timeout = 0,
     whileDead = true,
@@ -61,8 +63,8 @@ local function OnClick(button)
         return
     end
 
-    if button.handler == "EndSession" and addon:HasUnrolledPlayers() then
-        StaticPopup_Show("SBG_CONFIRM_END_GAME")
+    if button.handler == "CancelSession" and addon.session and #addon.session.players > 0 then
+        StaticPopup_Show("SBG_CONFIRM_END_GAME", nil, nil, addon.session)
 
         return
     end

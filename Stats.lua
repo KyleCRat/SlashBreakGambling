@@ -10,16 +10,19 @@ local function GetStatsTable()
     return char.stats
 end
 
-local function NormalizeName(name)
-    if not name or name == "" then
+local function NormalizeName(name, realm)
+    if issecretvalue(name) or issecretvalue(realm) or not name or name == "" then
         return nil
     end
 
-    if not name:find("-") then
-        name = name .. "-" .. (GetRealmName():gsub("%s+", ""))
+    local character, nameRealm = strsplit("-", name, 2)
+    realm = nameRealm or realm
+
+    if not realm or realm == "" then
+        realm = GetNormalizedRealmName()
     end
 
-    return name
+    return character .. "-" .. (realm:gsub("[%s%-]+", ""))
 end
 
 function addon:GetStats()

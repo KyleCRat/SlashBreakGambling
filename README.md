@@ -32,9 +32,9 @@ The window has the following sections from top to bottom:
 - **Start Game** — Opens entries and announces the game in party/raid chat
 - **Last Call** — Warns players this is their last chance to join
 - **Close Entries** — Locks the player list and prompts rolling
-- **End Game** — Ends the session and announces results
+- **End Game** — Cancels an unfinished session without scoring it
 
-Only the session leader can click the game button. If you end a game while players haven't rolled yet, a confirmation dialog appears.
+Only the session leader can click the game button. All game modes require at least two participants before rolling can start. With fewer participants, the button remains **End Game**. Cancelling a game with participants requires confirmation and does not create scores or payment reminders.
 
 **Join Game / Leave Game button** — Visible to all players (including non-leaders) while entries are open. Sends `1` or `-1` to chat on your behalf.
 
@@ -46,7 +46,7 @@ Only the session leader can click the game button. If you end a game while playe
 
 **Payment reminder** — If you lose, a separate movable window shows "You owe [winner] [amount] gold", with "You owe the guild [amount] gold" on the next line when applicable. It appears even if the main window is hidden. Additional losses append to the list, which scrolls when needed and stays open through subsequent games. Clicking **X** closes the window and clears all listed reminders. Undismissed reminders are saved per character across reloads and logins, and the window position is saved. The addon does not track gold trades or confirm payment.
 
-**Stats button** — Shows or hides the statistics panel, which displays all tracked players ranked from highest to lowest net gold. The top 3 winners are highlighted in gold, silver, and bronze. Includes buttons to report stats to party/raid chat.
+**Stats button** — Shows or hides the statistics panel, which displays up to 15 winners and 15 losers ranked from highest to lowest net gold. The top 3 winners are highlighted in gold, silver, and bronze. Includes buttons to report stats to party/raid chat.
 
 ---
 
@@ -54,10 +54,10 @@ Only the session leader can click the game button. If you end a game while playe
 
 1. The leader configures the **gold amount** and **game mode**, then clicks **Start Game**.
 2. An announcement is sent to party/raid chat. Players type `1` to join or `-1` to leave.
-3. The leader clicks **Last Call**, then **Close Entries** when ready.
+3. Once at least two players have joined, the leader clicks **Last Call**, then **Close Entries** when ready.
 4. Players roll using `/roll` (or click **Roll for Me**).
 5. Results are calculated and announced automatically when all rolls are in.
-6. Click **End Game** to wrap up and clear the session.
+6. To stop an unfinished game, the leader can click **End Game** and confirm cancellation without scoring.
 
 **The addon is not required to participate.** Any player can join or leave a game by simply typing `1` or `-1` in party/raid chat, and roll normally with `/roll` when prompted. The addon just provides a UI on top of that chat interface.
 
@@ -110,6 +110,10 @@ The addon uses addon messages to keep all installed clients in sync. Non-leaders
 
 Only the session leader drives game logic and makes announcements to chat.
 
+If the session leader leaves the party or raid, updated clients clear the unfinished session. Going offline alone does not release followers, and followers do not have a button to cancel the game.
+
+Player identities include the realm. Realm-qualified roll names and player GUIDs distinguish characters with the same name on different realms. If a roll contains only a short name, it is accepted only when that name identifies one group member; ambiguous rolls are ignored with a warning to the session leader.
+
 Followers need the updated addon for the final result and payment reminder. Showing the guild split requires an updated leader; older leaders send only the total payment.
 
 ---
@@ -117,6 +121,8 @@ Followers need the updated addon for the final result and payment reminder. Show
 ## Stats Tracking
 
 The addon automatically tracks each player's net gold won or lost across all games. Stats are stored per-character and updated for all addon users when a game ends.
+
+Existing stats are automatically migrated to normalized `Name-Realm` keys on each character's first login after updating, without changing balances. Stats remain editable through the commands below.
 
 - Click **Show Stats** to view the top 15 winners and bottom 15 losers by net gold (gold/silver/bronze for top 3)
 - Use **Report Top 3** to announce the top 3 winners and losers to chat (one line each)

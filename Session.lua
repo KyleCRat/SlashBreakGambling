@@ -2,18 +2,60 @@ local addon = LibStub("AceAddon-3.0"):GetAddon("SlashBreakGambling")
 
 addon.GameModules = {}
 
+local function GetFullUnitName(unit)
+    return addon.NormalizeName(UnitFullName(unit))
+end
+
 local function GetFullPlayerName()
-    local name = GetUnitName("player", true)
-
-    if not name:find("-") then
-        name = name .. "-" .. (GetRealmName():gsub("%s+", ""))
-    end
-
-    return name
+    return GetFullUnitName("player")
 end
 
 function addon:GetFullPlayerName()
     return GetFullPlayerName()
+end
+
+local function GetPublicPlayerGUID(guid)
+    if not issecretvalue(guid) and guid and guid ~= "" and C_PlayerInfo.GUIDIsPlayer(guid) then
+        return guid
+    end
+
+    return nil
+end
+
+local function GetGroupRoster()
+    local roster = {}
+    local count = 0
+
+    if IsInRaid() then
+        for i = 1, 40 do
+            local name = GetRaidRosterInfo(i)
+            name = addon.NormalizeName(name)
+
+            if name then
+                roster[name] = "raid" .. i
+                count = count + 1
+            end
+        end
+    else
+        local name = GetFullPlayerName()
+
+        if name then
+            roster[name] = "player"
+            count = 1
+        end
+
+        for i = 1, 4 do
+            local unit = "party" .. i
+            local name = GetFullUnitName(unit)
+
+            if name then
+                roster[name] = unit
+                count = count + 1
+            end
+        end
+    end
+
+    return roster, count >= GetNumGroupMembers()
 end
 
 local SESSION_STATES = {
@@ -24,6 +66,7 @@ local SESSION_STATES = {
 }
 
 addon.SESSION_STATES = SESSION_STATES
+addon.MIN_SESSION_PLAYERS = 2
 
 local function GetChatChannel()
     if IsInRaid() then
@@ -118,9 +161,17 @@ local function RegisterChatEvents()
     addon:RegisterEvent("CHAT_MSG_RAID_LEADER", "OnChatMessage")
 end
 
+local function UnregisterChatEvents()
+    addon:UnregisterEvent("CHAT_MSG_PARTY")
+    addon:UnregisterEvent("CHAT_MSG_PARTY_LEADER")
+    addon:UnregisterEvent("CHAT_MSG_RAID")
+    addon:UnregisterEvent("CHAT_MSG_RAID_LEADER")
+end
+
 local function UnregisterSessionEvents()
-    addon:UnregisterAllEvents()
-    addon:RegisterEvent("CHAT_MSG_ADDON", "OnAddonMessage")
+    UnregisterChatEvents()
+    addon:UnregisterEvent("CHAT_MSG_SYSTEM")
+    addon:UnregisterEvent("GROUP_ROSTER_UPDATE")
 end
 
 local function FormatGold(amount)
@@ -166,6 +217,7 @@ function addon:StartSession()
     self.session.leader = GetFullPlayerName()
 
     RegisterChatEvents()
+    self:RegisterEvent("GROUP_ROSTER_UPDATE", "OnSessionGroupRosterUpdate")
 
     BroadcastMessage("START", self.session.goldAmount, self.session.moduleName)
 
@@ -195,17 +247,13 @@ function addon:CloseEntries()
         return
     end
 
-    self:UnregisterEvent("CHAT_MSG_PARTY")
-    self:UnregisterEvent("CHAT_MSG_PARTY_LEADER")
-    self:UnregisterEvent("CHAT_MSG_RAID")
-    self:UnregisterEvent("CHAT_MSG_RAID_LEADER")
-
-    if #self.session.players == 0 then
-        self:EndSession()
+    if #self.session.players < self.MIN_SESSION_PLAYERS then
+        self:Print("At least two players must join before rolling can start.")
 
         return
     end
 
+    UnregisterChatEvents()
     self.session.state = SESSION_STATES.CLOSED
     self:RegisterEvent("CHAT_MSG_SYSTEM", "OnSystemMessage")
 
@@ -309,28 +357,56 @@ local function GetGuildCutAnnouncement(session)
     return result.loser .. " owes " .. result.winner .. " " .. BreakUpLargeNumbers(winnerAmount) .. "g and guild " .. BreakUpLargeNumbers(guildAmount) .. "g!"
 end
 
-function addon:EndSession()
-    local state = self:GetSessionState()
-
-    if state == SESSION_STATES.IDLE then
+function addon:CancelSession()
+    if self:GetSessionState() == SESSION_STATES.IDLE or not self:IsSessionLeader() then
         return
     end
 
-    local isLeader = self:IsSessionLeader()
+    UnregisterSessionEvents()
+    BroadcastMessage("END", 0)
+    self:ResetSession()
+    Announce("Game cancelled. No scores recorded.")
+end
+
+function addon:OnSessionGroupRosterUpdate()
+    if self:GetSessionState() == SESSION_STATES.IDLE then
+        return
+    end
+
+    if IsInGroup() then
+        local roster, complete = GetGroupRoster()
+
+        -- Offline members still belong to the roster; incomplete data is not a leave.
+        if roster[self.session.leader] or not complete then
+            return
+        end
+    end
 
     UnregisterSessionEvents()
+    self:ResetSession()
+    self:Print("Game cleared: the session leader is no longer in your group.")
+end
+
+function addon:EndSession()
+    if self:GetSessionState() ~= SESSION_STATES.CLOSED or not self:IsSessionLeader()
+        or #self.session.players < self.MIN_SESSION_PLAYERS then
+        return
+    end
 
     local config = GetSelectedModuleConfig()
 
-    if not self.session.lastResult and config.GetResult then
+    if not self.session.lastResult then
+        if config.OnRoll or not config.GetResult or self:HasUnrolledPlayers() then
+            return
+        end
+
         self.session.lastResult = config.GetResult(self.session.players, self.session.goldAmount)
     end
 
-    if isLeader then
-        self.session.guildCut = self.db:Get("session", "guildCut")
-    end
+    UnregisterSessionEvents()
+    self.session.guildCut = self.db:Get("session", "guildCut")
 
-    if isLeader and self.session.lastResult then
+    if self.session.lastResult then
         BroadcastAndUpdateStats(self.session)
 
         local guildCutAnnouncement = GetGuildCutAnnouncement(self.session)
@@ -346,16 +422,14 @@ function addon:EndSession()
         end
 
         Announce("Game ended!")
-    elseif isLeader then
+    else
         Announce("Game ended!")
         self.session.players = {}
         self.session.lastResult = nil
     end
 
-    if isLeader then
-        -- Older clients ignore END's payload; RESULT must contain only loser names.
-        BroadcastMessage("END", self.session.guildCut)
-    end
+    -- Older clients ignore END's payload; RESULT must contain only loser names.
+    BroadcastMessage("END", self.session.guildCut)
 
     self.session.state = SESSION_STATES.IDLE
     self:SendMessage("SBG_SESSION_STATE_CHANGED", SESSION_STATES.IDLE)
@@ -418,16 +492,47 @@ local function FindPlayer(players, name)
     return nil, nil
 end
 
-local function FindPlayerByShortName(players, shortName)
-    for i, player in ipairs(players) do
-        local playerShortName = player.name:match("^([^%-]+)")
-
-        if playerShortName == shortName then
-            return i, player
+local function FindRollPlayer(players, name, sender, guid)
+    if guid then
+        for i, player in ipairs(players) do
+            if player.guid == guid then
+                return i, player
+            end
         end
     end
 
-    return nil, nil
+    if name:find("-", 1, true) then
+        return FindPlayer(players, addon.NormalizeName(name))
+    end
+
+    if sender and sender:find("-", 1, true) then
+        return FindPlayer(players, addon.NormalizeName(sender))
+    end
+
+    if guid then
+        return nil, nil
+    end
+
+    local roster, complete = GetGroupRoster()
+
+    if not complete then
+        return nil, nil
+    end
+
+    local fullName
+
+    -- Legacy roll text can omit the realm. Resolve it only from a unique roster identity.
+    for memberName in pairs(roster) do
+        if memberName:match("^([^%-]+)") == name then
+            if fullName then
+                return nil, nil, true
+            end
+
+            fullName = memberName
+        end
+    end
+
+    return FindPlayer(players, fullName)
 end
 
 function addon:CanRollForMe()
@@ -463,7 +568,7 @@ function addon:RollForMe()
     RandomRoll(1, self.session.rollAmount)
 end
 
-local function AddPlayer(name)
+local function AddPlayer(name, guid)
     local players = addon.session.players
     local index = FindPlayer(players, name)
 
@@ -478,29 +583,22 @@ local function AddPlayer(name)
     end
 
     local classFile
-    local unitName = GetFullPlayerName()
+    local roster = GetGroupRoster()
+    local unit = roster[name]
 
-    if unitName == name then
-        _, classFile = UnitClass("player")
-    else
-        local realm = GetRealmName():gsub("%s+", "")
+    if unit then
+        local _, unitClass = UnitClass(unit)
 
-        for i = 1, GetNumGroupMembers() do
-            local unit = (IsInRaid() and "raid" or "party") .. i
-            local unitName = GetUnitName(unit, true)
+        if not issecretvalue(unitClass) then
+            classFile = unitClass
+        end
 
-            if unitName and not unitName:find("-") then
-                unitName = unitName .. "-" .. realm
-            end
-
-            if unitName == name then
-                _, classFile = UnitClass(unit)
-                break
-            end
+        if not guid then
+            guid = GetPublicPlayerGUID(UnitGUID(unit))
         end
     end
 
-    table.insert(players, { name = name, roll = nil, classFile = classFile })
+    table.insert(players, { name = name, guid = guid, roll = nil, classFile = classFile })
     addon:SendMessage("SBG_PLAYER_JOINED", name)
 
     if addon:IsSessionLeader() and config.maxPlayers and #players >= config.maxPlayers then
@@ -527,17 +625,22 @@ end
 
 local ROLL_PATTERN = "(.+) rolls (%d+) %(1%-(%d+)%)"
 
-function addon:OnChatMessage(event, msg, sender)
+function addon:OnChatMessage(event, msg, sender, ...)
     local state = self:GetSessionState()
 
     if state ~= SESSION_STATES.OPEN and state ~= SESSION_STATES.LAST_CALL then
         return
     end
 
-    local name = sender
+    local name = self.NormalizeName(sender)
+
+    if not name or issecretvalue(msg) then
+        return
+    end
 
     if msg == "1" then
-        AddPlayer(name)
+        local guid = GetPublicPlayerGUID(select(10, ...))
+        AddPlayer(name, guid)
 
         return
     end
@@ -547,8 +650,8 @@ function addon:OnChatMessage(event, msg, sender)
     end
 end
 
-function addon:OnSystemMessage(event, msg)
-    if self:GetSessionState() ~= SESSION_STATES.CLOSED then
+function addon:OnSystemMessage(event, msg, sender, ...)
+    if self:GetSessionState() ~= SESSION_STATES.CLOSED or issecretvalue(msg) then
         return
     end
 
@@ -565,9 +668,19 @@ function addon:OnSystemMessage(event, msg)
         return
     end
 
-    local index, player = FindPlayerByShortName(self.session.players, name)
+    local guid = GetPublicPlayerGUID(select(10, ...))
+
+    if issecretvalue(sender) then
+        sender = nil
+    end
+
+    local index, player, ambiguous = FindRollPlayer(self.session.players, name, sender, guid)
 
     if not index then
+        if ambiguous and self:IsSessionLeader() then
+            self:Print("Ignored an ambiguous roll from " .. name .. ": no realm or player GUID was provided.")
+        end
+
         return
     end
 
@@ -579,15 +692,14 @@ function addon:OnSystemMessage(event, msg)
 
     if config.OnRoll and config.turnBased then
         local currentName = self.session.moduleState.currentPlayerName
-        local shortCurrent = currentName and currentName:match("^([^%-]+)")
 
-        if name ~= shortCurrent then
+        if player.name ~= currentName then
             return
         end
     end
 
     player.roll = roll
-    self:SendMessage("SBG_PLAYER_ROLLED", name, roll)
+    self:SendMessage("SBG_PLAYER_ROLLED", player.name, roll)
 
     if not self:IsSessionLeader() then
         return
@@ -668,9 +780,9 @@ function addon:OnAddonMessage(event, prefix, message, channel, sender)
         return
     end
 
-    local senderName = sender
+    local senderName = self.NormalizeName(sender)
 
-    if senderName == GetFullPlayerName() then
+    if not senderName or senderName == GetFullPlayerName() then
         return
     end
 
@@ -702,7 +814,8 @@ function addon:OnAddonMessage(event, prefix, message, channel, sender)
             nextPlayerName = nil
         end
 
-        self:OnRemoteRollAdvanced(senderName, tonumber(nextRollAmount), rollerName, tonumber(rollerRoll), nextPlayerName)
+        self:OnRemoteRollAdvanced(senderName, tonumber(nextRollAmount), self.NormalizeName(rollerName),
+            tonumber(rollerRoll), self.NormalizeName(nextPlayerName))
 
         return
     end
@@ -725,7 +838,7 @@ function addon:OnRemoteResult(leader, payload)
 
     local parts = { strsplit(":", payload) }
     local amountPerLoser = tonumber(parts[1])
-    local winner = parts[2]
+    local winner = self.NormalizeName(parts[2])
     local losers = {}
 
     if not amountPerLoser or amountPerLoser <= 0 or amountPerLoser == math.huge
@@ -738,7 +851,7 @@ function addon:OnRemoteResult(leader, payload)
             return
         end
 
-        table.insert(losers, parts[i])
+        table.insert(losers, self.NormalizeName(parts[i]))
     end
 
     self:UpdateStats(amountPerLoser, winner, losers)
@@ -784,6 +897,7 @@ function addon:OnRemoteStart(leader, goldAmount, moduleKey)
     }
 
     RegisterChatEvents()
+    self:RegisterEvent("GROUP_ROSTER_UPDATE", "OnSessionGroupRosterUpdate")
 
     self:SendMessage("SBG_SESSION_STATE_CHANGED", SESSION_STATES.OPEN)
 end
@@ -811,10 +925,7 @@ function addon:OnRemoteClose(leader, rollAmount)
         return
     end
 
-    self:UnregisterEvent("CHAT_MSG_PARTY")
-    self:UnregisterEvent("CHAT_MSG_PARTY_LEADER")
-    self:UnregisterEvent("CHAT_MSG_RAID")
-    self:UnregisterEvent("CHAT_MSG_RAID_LEADER")
+    UnregisterChatEvents()
 
     self.session.state = SESSION_STATES.CLOSED
     self.session.rollAmount = rollAmount
@@ -851,10 +962,12 @@ function addon:OnRemoteRollAdvanced(leader, nextRollAmount, rollerName, rollerRo
         player.roll = nil
     end
 
-    local _, roller = FindPlayer(self.session.players, rollerName)
+    if config.turnBased then
+        local _, roller = FindPlayer(self.session.players, rollerName)
 
-    if roller then
-        roller.roll = rollerRoll
+        if roller then
+            roller.roll = rollerRoll
+        end
     end
 
     self:SendMessage("SBG_SESSION_ROLL_ADVANCED", nextRollAmount)

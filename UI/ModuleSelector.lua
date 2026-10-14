@@ -38,68 +38,85 @@ end
 
 local DROPDOWN_PADDING = 10
 
+local function UpdateRowStyle(row)
+    if row.isSelected then
+        row.text:SetTextColor(1, 1, 1, 1)
+        row:SetBackdropColor(0.3, 0.25, 0, 1)
+        row:SetBackdropBorderColor(1, 0.82, 0, 1)
+    else
+        row.text:SetTextColor(1, 0.82, 0, 1)
+        row:SetBackdropColor(0.15, 0.15, 0.15, 1)
+        row:SetBackdropBorderColor(0.6, 0.6, 0.6, 1)
+    end
+end
+
+local function CreateModuleRow(button, width)
+    local row = UI.Partials.CreateStyledButton(button.dropdown, nil, width, ROW_HEIGHT, "")
+
+    row:SetScript("OnClick", function(self)
+        addon.db:Set("session", "selectedModule", self.entry.key)
+        addon:SendMessage("SBG_MODULE_CHANGED", self.entry.key)
+        HideDropdown(button)
+    end)
+
+    row:SetScript("OnEnter", function(self)
+        self:SetBackdropColor(0.25, 0.25, 0.25, 1)
+        self:SetBackdropBorderColor(1, 0.82, 0, 1)
+
+        local description = self.entry.config.description
+
+        if description then
+            GameTooltip:SetOwner(self, "ANCHOR_NONE")
+            GameTooltip:SetPoint("LEFT", self, "RIGHT", 16, 0)
+            GameTooltip:SetText(self.entry.label, 1, 0.82, 0, 1)
+            GameTooltip:AddLine(description, 1, 1, 1, true)
+            GameTooltip:Show()
+        end
+    end)
+
+    row:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+        UpdateRowStyle(self)
+    end)
+
+    row:SetScript("OnHide", function(self)
+        if GameTooltip:IsOwned(self) then
+            GameTooltip:Hide()
+        end
+    end)
+
+    return row
+end
+
 local function ShowDropdown(button)
     local dropdown = button.dropdown
 
-    -- Rebuild rows each open so newly registered modules appear
     for _, row in ipairs(dropdown.rows) do
         row:Hide()
     end
-
-    dropdown.rows = {}
 
     local modules = addon.GameModules
     local selectedKey = addon.db:Get("session", "selectedModule")
     local rowWidth = dropdown:GetWidth() - (DROPDOWN_PADDING * 2)
 
     for i, entry in ipairs(modules) do
-        local row = UI.Partials.CreateStyledButton(
-            dropdown,
-            nil,
-            rowWidth,
-            ROW_HEIGHT,
-            entry.label
-        )
+        local row = dropdown.rows[i]
 
+        if not row then
+            row = CreateModuleRow(button, rowWidth)
+            dropdown.rows[i] = row
+        end
+
+        row.entry = entry
+        row.isSelected = entry.key == selectedKey
+        row:SetWidth(rowWidth)
+        row:ClearAllPoints()
         row:SetPoint("TOPLEFT", dropdown, "TOPLEFT",
             DROPDOWN_PADDING, -DROPDOWN_PADDING - (i - 1) * ROW_HEIGHT)
-
-        if entry.key == selectedKey then
-            row.isSelected = true
-            row.text:SetTextColor(1, 1, 1, 1)
-            row:SetBackdropColor(0.3, 0.25, 0, 1)
-            row:SetBackdropBorderColor(1, 0.82, 0, 1)
-        end
-
-        local key = entry.key
-        local description = entry.config and entry.config.description
-
-        row:SetScript("OnClick", function()
-            addon.db:Set("session", "selectedModule", key)
-            addon:SendMessage("SBG_MODULE_CHANGED", key)
-            HideDropdown(button)
-        end)
-
-        if description then
-            row:SetScript("OnEnter", function(self)
-                GameTooltip:SetOwner(self, "ANCHOR_NONE")
-                GameTooltip:SetPoint("LEFT", self, "RIGHT", 16, 0)
-                GameTooltip:SetText(entry.label, 1, 0.82, 0, 1)
-                GameTooltip:AddLine(description, 1, 1, 1, true)
-                GameTooltip:Show()
-            end)
-
-            row:SetScript("OnLeave", function(self)
-                GameTooltip:Hide()
-
-                if self.isSelected then
-                    self:SetBackdropColor(0.3, 0.25, 0, 1)
-                    self:SetBackdropBorderColor(1, 0.82, 0, 1)
-                end
-            end)
-        end
-
-        dropdown.rows[i] = row
+        row.text:SetPoint("CENTER", 0, 0)
+        row.text:SetText(entry.label)
+        UpdateRowStyle(row)
+        row:Show()
     end
 
     dropdown:SetHeight(#modules * ROW_HEIGHT + (DROPDOWN_PADDING * 2))
@@ -158,7 +175,6 @@ local function CreateModuleSelector(self, parentFrame, anchorElement, yOffset, w
         ToggleDropdown(button)
     end)
 
-    -- Hide dropdown when clicking outside
     dropdown:SetScript("OnHide", function()
         for _, row in ipairs(dropdown.rows) do
             row:Hide()

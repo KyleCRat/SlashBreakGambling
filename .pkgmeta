@@ -6,6 +6,7 @@ manual-changelog:
 
 ignore:
     - Design.md
+    - Migrations/README.md
     - PLAN.md
     - TODO.md
     - "*.png"
