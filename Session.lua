@@ -40,10 +40,30 @@ end
 local function Announce(message)
     local channel = GetChatChannel()
 
-    if channel then
-        SendChatMessage(addon.ABBR .. " " .. message, channel)
-    else
+    if not channel then
         addon:Print(message)
+
+        return
+    end
+
+    local prefix = addon.ABBR .. " "
+    local line = prefix
+
+    -- Split between words so long loser lists retain complete UTF-8 names.
+    for word in message:gmatch("%S+") do
+        local separator = line == prefix and "" or " "
+
+        if line ~= prefix and #line + #separator + #word > 220 then
+            SendChatMessage(line, channel)
+            line = prefix
+            separator = ""
+        end
+
+        line = line .. separator .. word
+    end
+
+    if line ~= prefix then
+        SendChatMessage(line, channel)
     end
 end
 
@@ -232,12 +252,34 @@ local function BroadcastAndUpdateStats(session)
         amountPerLoser = result.amount
     end
 
-    BroadcastMessage("RESULT", amountPerLoser, winner, unpack(losers))
+    result.amountPerLoser = amountPerLoser
+    result.guildCut = session.guildCut
+
+    -- Each batch remains a legacy RESULT so older clients count every payment.
+    local headerLength = #("RESULT:" .. tostring(amountPerLoser) .. ":" .. winner)
+    local batch = {}
+    local batchLength = headerLength
+
+    for _, loser in ipairs(losers) do
+        if #batch > 0 and batchLength + 1 + #loser > 220 then
+            BroadcastMessage("RESULT", amountPerLoser, winner, unpack(batch))
+            batch = {}
+            batchLength = headerLength
+        end
+
+        table.insert(batch, loser)
+        batchLength = batchLength + 1 + #loser
+    end
+
+    if #batch > 0 then
+        BroadcastMessage("RESULT", amountPerLoser, winner, unpack(batch))
+    end
+
     addon:UpdateStats(amountPerLoser, winner, losers)
 end
 
 local function GetGuildCutAnnouncement(session)
-    local guildCut = addon.db:Get("session", "guildCut")
+    local guildCut = session.guildCut
 
     if guildCut == 0 then
         return nil
@@ -284,6 +326,10 @@ function addon:EndSession()
         self.session.lastResult = config.GetResult(self.session.players, self.session.goldAmount)
     end
 
+    if isLeader then
+        self.session.guildCut = self.db:Get("session", "guildCut")
+    end
+
     if isLeader and self.session.lastResult then
         BroadcastAndUpdateStats(self.session)
 
@@ -307,7 +353,8 @@ function addon:EndSession()
     end
 
     if isLeader then
-        BroadcastMessage("END")
+        -- Older clients ignore END's payload; RESULT must contain only loser names.
+        BroadcastMessage("END", self.session.guildCut)
     end
 
     self.session.state = SESSION_STATES.IDLE
@@ -661,27 +708,65 @@ function addon:OnAddonMessage(event, prefix, message, channel, sender)
     end
 
     if command == "RESULT" then
-        self:OnRemoteResult(payload)
+        self:OnRemoteResult(senderName, payload)
 
         return
     end
 
     if command == "END" then
-        self:OnRemoteEnd(senderName)
+        self:OnRemoteEnd(senderName, tonumber(payload))
     end
 end
 
-function addon:OnRemoteResult(payload)
+function addon:OnRemoteResult(leader, payload)
+    if not payload then
+        return
+    end
+
     local parts = { strsplit(":", payload) }
     local amountPerLoser = tonumber(parts[1])
     local winner = parts[2]
     local losers = {}
 
+    if not amountPerLoser or amountPerLoser <= 0 or amountPerLoser == math.huge
+        or amountPerLoser ~= amountPerLoser or not winner or winner == "" or #parts < 3 then
+        return
+    end
+
     for i = 3, #parts do
+        if parts[i] == "" then
+            return
+        end
+
         table.insert(losers, parts[i])
     end
 
     self:UpdateStats(amountPerLoser, winner, losers)
+
+    if not self.session or self.session.leader ~= leader then
+        return
+    end
+
+    local result = self.session.lastResult
+
+    if not result then
+        result = {
+            winner = winner,
+            losers = {},
+            amountPerLoser = amountPerLoser,
+            guildCut = self.session.guildCut,
+        }
+        self.session.lastResult = result
+    elseif result.winner ~= winner or result.amountPerLoser ~= amountPerLoser then
+        return
+    end
+
+    for _, loser in ipairs(losers) do
+        table.insert(result.losers, loser)
+    end
+
+    result.amount = amountPerLoser * #result.losers
+    self:SendMessage("SBG_SESSION_RESULT")
 end
 
 function addon:OnRemoteStart(leader, goldAmount, moduleKey)
@@ -775,7 +860,7 @@ function addon:OnRemoteRollAdvanced(leader, nextRollAmount, rollerName, rollerRo
     self:SendMessage("SBG_SESSION_ROLL_ADVANCED", nextRollAmount)
 end
 
-function addon:OnRemoteEnd(leader)
+function addon:OnRemoteEnd(leader, guildCut)
     local state = self:GetSessionState()
 
     if state == SESSION_STATES.IDLE then
@@ -787,6 +872,16 @@ function addon:OnRemoteEnd(leader)
     end
 
     UnregisterSessionEvents()
+
+    if guildCut and (guildCut < 0 or guildCut > 100 or guildCut ~= math.floor(guildCut)) then
+        guildCut = nil
+    end
+
+    self.session.guildCut = guildCut
+
+    if self.session.lastResult then
+        self.session.lastResult.guildCut = guildCut
+    end
 
     self.session.state = SESSION_STATES.IDLE
 

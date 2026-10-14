@@ -62,6 +62,17 @@ local function OnSessionStateChanged(event, state)
 
         UI.RefreshPlayerList(frame.playerList)
     end
+
+    UI.UpdateDebtReminder(UI.debtReminder)
+end
+
+local function OnSessionResult()
+    if addon:GetSessionState() ~= addon.SESSION_STATES.IDLE then
+        return
+    end
+
+    UI.RefreshPlayerList(UI.frame.playerList)
+    UI.UpdateDebtReminder(UI.debtReminder)
 end
 
 local function OnBreakTimerStarted()
@@ -169,6 +180,7 @@ local FRAME_MARGIN = 10
 
 function UI:OnEnable()
     local frame = self:CreateMainFrame()
+    self.debtReminder = self:CreateDebtReminder()
     frame.playerList = self:CreatePlayerList(frame)
     frame.playerList:Hide()
 
@@ -221,8 +233,10 @@ function UI:OnEnable()
 
     frame:SetShown(addon.db:Get("frame", "shown"))
     self.frame = frame
+    UI.ShowDebtReminder(self.debtReminder)
 
     self:RegisterMessage("SBG_SESSION_STATE_CHANGED", OnSessionStateChanged)
+    self:RegisterMessage("SBG_SESSION_RESULT", OnSessionResult)
     self:RegisterMessage("SBG_BREAK_TIMER_STARTED", OnBreakTimerStarted)
     self:RegisterMessage("SBG_ENCOUNTER_STARTED", OnEncounterStarted)
     self:RegisterMessage("SBG_MODULE_CHANGED", OnModuleChanged)

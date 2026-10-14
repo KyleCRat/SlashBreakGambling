@@ -73,11 +73,11 @@ local function GetModuleLabel()
 end
 
 local function FormatResultLine(result)
-    if not result or result.tie then
+    if addon:GetSessionState() ~= addon.SESSION_STATES.IDLE then
         return nil
     end
 
-    return result.winner .. " won " .. BreakUpLargeNumbers(result.amount) .. " |TInterface\\MoneyFrame\\UI-GoldIcon:0|t"
+    return UI.FormatResultPayment(result)
 end
 
 local function RefreshPlayerList(frame)
@@ -111,7 +111,7 @@ local function RefreshPlayerList(frame)
             frame.resultLabel:SetText(resultLine)
             frame.resultLabel:Show()
             PositionAtOffset(frame, frame.resultLabel, yOffset)
-            yOffset = yOffset + HEADER_HEIGHT + PADDING
+            yOffset = yOffset + math.max(HEADER_HEIGHT, frame.resultLabel:GetStringHeight()) + PADDING
         else
             frame.resultLabel:Hide()
         end
@@ -184,6 +184,8 @@ local function CreatePlayerList(self, parentFrame)
 
     frame.resultLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     frame.resultLabel:SetJustifyH("CENTER")
+    frame.resultLabel:SetWordWrap(true)
+    frame.resultLabel:SetNonSpaceWrap(true)
     frame.resultLabel:SetTextColor(0.4, 1, 0.4, 1)
     frame.resultLabel:Hide()
 

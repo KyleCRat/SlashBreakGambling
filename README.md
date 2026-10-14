@@ -42,7 +42,9 @@ Only the session leader can click the game button. If you end a game while playe
 
 **Roll for Me button** — Visible when it's your turn to roll. Fires `/roll` automatically with the correct number.
 
-**Toggle Player List button** — Shows or hides the player list panel, which displays each player, their class color, and their roll result.
+**Toggle Player List button** — Shows or hides the player list panel, which displays each player, their class color, and their roll result. When a game ends, both the leader and followers see who owes whom and how much.
+
+**Payment reminder** — If you lose, a separate movable window shows "You owe [winner] [amount] gold", with "You owe the guild [amount] gold" on the next line when applicable. It appears even if the main window is hidden. Additional losses append to the list, which scrolls when needed and stays open through subsequent games. Clicking **X** closes the window and clears all listed reminders. Undismissed reminders are saved per character across reloads and logins, and the window position is saved. The addon does not track gold trades or confirm payment.
 
 **Stats button** — Shows or hides the statistics panel, which displays all tracked players ranked from highest to lowest net gold. The top 3 winners are highlighted in gold, silver, and bronze. Includes buttons to report stats to party/raid chat.
 
@@ -104,8 +106,11 @@ The addon uses addon messages to keep all installed clients in sync. Non-leaders
 - See the player list update as players join and leave
 - Receive turn announcements and elimination messages
 - Have access to **Join/Leave** and **Roll for Me** at the appropriate times
+- See the leader's final payment result and a personal reminder if they lose
 
 Only the session leader drives game logic and makes announcements to chat.
+
+Followers need the updated addon for the final result and payment reminder. Showing the guild split requires an updated leader; older leaders send only the total payment.
 
 ---
 

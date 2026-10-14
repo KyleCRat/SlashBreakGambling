@@ -31,6 +31,7 @@ UI/Partials/_Divider.lua
 UI/Partials/_CloseButton.lua
 UI/Partials/_Title.lua
 UI/Frame.lua
+UI/Results.lua
 UI/PlayerList.lua
 UI/GoldSlider.lua
 UI/GuildCutButton.lua
