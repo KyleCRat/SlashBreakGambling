@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- Fixed startup and `/sbg` failing when no other addon supplied a required library.
 - Followers now see who owes whom at game end. When the leader is also updated, any guild payment appears on a separate line in the results and payment reminder.
 - Long loser lists are split into smaller messages so payment results and announcements fit the chat limits.
 
